@@ -3,6 +3,7 @@
 import time
 import requests
 import urllib
+import re
 
 from bs4 import BeautifulSoup
 
@@ -75,6 +76,7 @@ class GoogleTranslate(QDialog):
                 continue
             soup = BeautifulSoup(note[self.sourceField], "html.parser")
             text = soup.get_text()
+            text = re.sub(r'{{c\d+::(.*?)(::.*?)?}}', r'<b>\1</b>', text, flags=re.I)
             if not chunk["nids"]:
                 chunk["nids"].append(nid)
                 chunk["query"] += text
@@ -152,6 +154,11 @@ class GoogleTranslate(QDialog):
 
                 for nid, text in zip(nids, translated):
                     note = mw.col.getNote(nid)
+                    text = text.replace(' <b> ', ' <b>')
+                    text = text.replace(' </b> ', '</b> ')
+                    text = re.sub(r'<b>(.*?)</b>', r'{{c1::\1}}', text)
+                    text = re.sub(r' }}([,.?!])', r'}}\1', text)
+                    text = text.replace('{{c1:: ', '{{c1::')
                     note[self.targetField] = text.strip()
                     note.flush()
 
