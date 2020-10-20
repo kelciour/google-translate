@@ -97,6 +97,15 @@ class GoogleTranslate(QDialog):
         if chunk["nids"]:
             yield chunk
 
+    def fix(self, text):
+        soup = BeautifulSoup(text, "html.parser")
+        for s in soup.select('[style]'):
+            # rgb (34, 34, 34) -> rgb(34, 34, 34)
+            s["style"] = re.sub(r' \(', '(', s["style"])
+            s["style"] = re.sub(r'\s*([=:;])\s*', r'\1', s["style"])
+            s["style"] = s["style"].strip()
+        return str(soup)
+
     def sleep(self, seconds):
         start = time.time()
         while time.time() - start < seconds:
@@ -169,7 +178,10 @@ class GoogleTranslate(QDialog):
                     text = re.sub(r'<c>(.*?)</c>', r'{{c1::\1}}', text)
                     text = re.sub(r' }}([,.?!])', r'}}\1', text)
                     text = text.replace('{{c1:: ', '{{c1::')
-                    note[self.targetField] = text.strip()
+                    text = text.strip()
+                    if not self.config["Strip HTML"]:
+                        text = self.fix(text)
+                    note[self.targetField] = text
                     note.flush()
 
                 self.browser.mw.progress.update("Processed {}/{} notes...".format(chunk["progress"], len(self.nids)))
