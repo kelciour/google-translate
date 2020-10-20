@@ -2,5 +2,6 @@
 	"Source Field": "",
 	"Target Field": "",
 	"Source Language": "",
-	"Target Language": ""
+	"Target Language": "",
+	"Strip HTML": false
 }

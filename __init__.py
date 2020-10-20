@@ -58,6 +58,11 @@ class GoogleTranslate(QDialog):
             if self.config[key]:
                 cb.setCurrentIndex(cb.findText(self.config[key]))
 
+        if self.config["Strip HTML"]:
+            self.form.radioButtonText.setChecked(True)
+        else:
+            self.form.radioButtonHTML.setChecked(True)
+
         self.icon = os.path.join(os.path.dirname(__file__), "favicon.ico")
         self.setWindowIcon(QIcon(self.icon))
 
@@ -74,8 +79,11 @@ class GoogleTranslate(QDialog):
                 continue
             if note[self.targetField]:
                 continue
-            soup = BeautifulSoup(note[self.sourceField], "html.parser")
-            text = soup.get_text()
+            if self.config["Strip HTML"]:
+                soup = BeautifulSoup(note[self.sourceField], "html.parser")
+                text = soup.get_text()
+            else:
+                text = note[self.sourceField]
             text = re.sub(r'{{c\d+::(.*?)(::.*?)?}}', r'<b>\1</b>', text, flags=re.I)
             if not chunk["nids"]:
                 chunk["nids"].append(nid)
@@ -109,6 +117,8 @@ class GoogleTranslate(QDialog):
 
         self.config["Source Language"] = self.sourceLang
         self.config["Target Language"] = self.targetLang
+
+        self.config["Strip HTML"] = self.form.radioButtonText.isChecked()
 
         mw.addonManager.writeConfig(__name__, self.config)
 
