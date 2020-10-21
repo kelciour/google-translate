@@ -63,6 +63,8 @@ class GoogleTranslate(QDialog):
         else:
             self.form.radioButtonHTML.setChecked(True)
 
+        self.form.checkBoxOverwrite.setChecked(self.config["Overwrite"])
+
         self.icon = os.path.join(os.path.dirname(__file__), "favicon.ico")
         self.setWindowIcon(QIcon(self.icon))
 
@@ -77,7 +79,7 @@ class GoogleTranslate(QDialog):
                 continue
             if self.targetField not in note:
                 continue
-            if note[self.targetField]:
+            if note[self.targetField] and not self.config["Overwrite"]:
                 continue
             if self.config["Strip HTML"]:
                 soup = BeautifulSoup(note[self.sourceField], "html.parser")
@@ -129,6 +131,8 @@ class GoogleTranslate(QDialog):
         self.config["Target Language"] = self.targetLang
 
         self.config["Strip HTML"] = self.form.radioButtonText.isChecked()
+
+        self.config["Overwrite"] = self.form.checkBoxOverwrite.isChecked()
 
         mw.addonManager.writeConfig(__name__, self.config)
 

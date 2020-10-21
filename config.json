@@ -3,5 +3,6 @@
 	"Target Field": "",
 	"Source Language": "",
 	"Target Language": "",
-	"Strip HTML": false
+	"Strip HTML": false,
+	"Overwrite": false
 }
