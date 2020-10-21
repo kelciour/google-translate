@@ -98,6 +98,7 @@ class GoogleTranslate(QDialog):
             yield chunk
 
     def fix(self, text):
+        text = re.sub(r'<\s*/\s*', '</', text)
         soup = BeautifulSoup(text, "html.parser")
         for s in soup.select('[style]'):
             # rgb (34, 34, 34) -> rgb(34, 34, 34)
