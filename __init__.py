@@ -2,6 +2,7 @@
 
 import time
 import requests
+import traceback
 import urllib
 import re
 
@@ -191,7 +192,7 @@ class GoogleTranslate(QDialog):
 
                 self.browser.mw.progress.update("Processed {}/{} notes...".format(chunk["progress"], len(self.nids)))
         except Exception as e:
-            error = e
+            error = traceback.format_exc()
 
         self.browser.mw.progress.finish()
         
