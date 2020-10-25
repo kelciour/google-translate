@@ -76,6 +76,8 @@ class GoogleTranslate(QDialog):
         for nid in self.nids:
             note = mw.col.getNote(nid)
             chunk["progress"] += 1
+            if not note[self.sourceField]:
+               continue
             if self.sourceField not in note:
                 continue
             if self.targetField not in note:
