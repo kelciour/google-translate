@@ -86,7 +86,7 @@ class GoogleTranslate(QDialog):
                 text = soup.get_text()
             else:
                 text = note[self.sourceField]
-            text = re.sub(r'{{c\d+::(.*?)(::.*?)?}}', r'<c>\1</c>', text, flags=re.I)
+            text = re.sub(r'{{c(\d+)::(.*?)(::.*?)?}}', r'<c\1>\2</c>', text, flags=re.I)
             if not chunk["nids"]:
                 chunk["nids"].append(nid)
                 chunk["query"] += text
@@ -178,11 +178,11 @@ class GoogleTranslate(QDialog):
 
                 for nid, text in zip(nids, translated):
                     note = mw.col.getNote(nid)
-                    text = text.replace(' <c> ', ' <c>')
-                    text = text.replace(' </c> ', '</c> ')
-                    text = re.sub(r'<c>(.*?)</c>', r'{{c1::\1}}', text)
+                    text = re.sub(r' (<c\d+>) ', r' \1', text)
+                    text = re.sub(r' (</c\d+>) ', r'\1 ', text)
+                    text = re.sub(r'<c(\d+)>(.*?)</c>', r'{{c\1::\2}}', text)
                     text = re.sub(r' }}([,.?!])', r'}}\1', text)
-                    text = text.replace('{{c1:: ', '{{c1::')
+                    text = re.sub(r'{{c(\d+)::(.*?) +}} ', r'{{c\1::\2}} ', text)
                     text = text.strip()
                     if not self.config["Strip HTML"]:
                         text = self.fix(text)
