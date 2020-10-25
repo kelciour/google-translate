@@ -186,6 +186,7 @@ class GoogleTranslate(QDialog):
                     text = re.sub(r'<c(\d+)>(.*?)</c>', r'{{c\1::\2}}', text)
                     text = re.sub(r' }}([,.?!])', r'}}\1', text)
                     text = re.sub(r'{{c(\d+)::(.*?) +}} ', r'{{c\1::\2}} ', text)
+                    text = text.replace('< ', '<')
                     text = text.strip()
                     if not self.config["Strip HTML"]:
                         text = self.fix(text)
