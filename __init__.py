@@ -4,6 +4,7 @@ import time
 import requests
 import traceback
 import urllib
+import itertools
 import re
 
 from bs4 import BeautifulSoup
@@ -158,7 +159,15 @@ class GoogleTranslate(QDialog):
 
                 nids = chunk["nids"]
                 query = chunk["query"]
-                
+
+                attributes = {}
+                idx = itertools.count(1)
+                def attrs_to_i(m):
+                    i = str(next(idx))
+                    attributes[i] = m.group(2)
+                    return "<{} i={}>".format(m.group(1), i)
+                query = re.sub(r'<(\w+) ([^>]+)>', attrs_to_i, query)
+
                 rows = query.split("\n~\n")
                 assert len(nids) == len(rows), "Chunks: {} != {}".format(len(nids), len(rows))
 
@@ -175,6 +184,10 @@ class GoogleTranslate(QDialog):
                         translated += d[0]
                 except Exception:
                     raise
+
+                def i_to_attrs(m):
+                    return "<{} {}>".format(m.group(1), attributes[m.group(2)])
+                translated = re.sub(r'<(\w+) i\s*=\s*(\d+)>', i_to_attrs, translated)
 
                 translated = translated.split('\n~\n')
                 assert len(nids) == len(translated), "Translated: {} != {}".format(len(nids), len(translated))
