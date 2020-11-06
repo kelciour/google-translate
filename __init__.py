@@ -189,7 +189,7 @@ class GoogleTranslate(QDialog):
                     return "<{} {}>".format(m.group(1), attributes[m.group(2)])
                 translated = re.sub(r'<(\w+) i\s*=\s*(\d+)>', i_to_attrs, translated)
 
-                translated = translated.split('\n~\n')
+                translated = re.split('\n[~〜]\n', translated)
                 assert len(nids) == len(translated), "Translated: {} != {}".format(len(nids), len(translated))
 
                 for nid, text in zip(nids, translated):
