@@ -201,7 +201,7 @@ class GoogleTranslate(QDialog):
                     return "<{} {}>".format(m.group(1), attributes[m.group(2)])
                 translated = re.sub(r'<(\w+) i\s*=\s*(\d+)>', i_to_attrs, translated)
 
-                translated = re.split(r'\n[~〜]{3}\n', translated)
+                translated = re.split(r'\n[~〜] ?[~〜] ?[~〜]\n', translated)
                 assert len(nids) == len(translated), "Translated: {} notes != {}\n\n-------------\n{}\n-------------\n".format(len(nids), len(translated), urllib.parse.unquote(query))
 
                 romanization = re.split(r'\s*[~〜]{3}\s*', romanization)
