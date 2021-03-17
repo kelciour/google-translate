@@ -51,10 +51,11 @@ class GoogleTranslate(QDialog):
         self.form.targetField.setCurrentIndex(len(fields)-1)
 
         self.form.rmField.addItems(fields)
+        self.form.mdField.addItems(fields)
         
         self.config = mw.addonManager.getConfig(__name__)
         
-        for fld, cb in [("Source Field", self.form.sourceField), ("Target Field", self.form.targetField), ("Romanization Field", self.form.rmField)]:
+        for fld, cb in [("Source Field", self.form.sourceField), ("Target Field", self.form.targetField), ("Romanization Field", self.form.rmField), ("Definitions Field", self.form.mdField)]:
             if self.config[fld] and self.config[fld] in note:
                 cb.setCurrentIndex(fields.index(self.config[fld]))
 
@@ -97,7 +98,7 @@ class GoogleTranslate(QDialog):
             if not chunk["nids"]:
                 chunk["nids"].append(nid)
                 chunk["query"] += text
-            elif len(chunk["query"] + text) < 2000:
+            elif len(chunk["query"] + text) < 2000 and not self.mdField:
                 chunk["nids"].append(nid)
                 chunk["query"] += urllib.parse.quote("\n~~~\n") + text
             else:
@@ -128,10 +129,12 @@ class GoogleTranslate(QDialog):
         self.sourceField = self.form.sourceField.currentText()
         self.targetField = self.form.targetField.currentText()
         self.rmField = self.form.rmField.currentText()
+        self.mdField = self.form.mdField.currentText()
 
         self.config["Source Field"] = self.sourceField
         self.config["Target Field"] = self.targetField
         self.config["Romanization Field"] = self.rmField
+        self.config["Definitions Field"] = self.mdField
 
         self.sourceLang = self.form.sourceLang.currentText()
         self.targetLang = self.form.targetLang.currentText()
@@ -180,6 +183,7 @@ class GoogleTranslate(QDialog):
                     "&sl={}&tl={}&dt=t".format(self.sourceLangCode, self.targetLangCode)
                 EXTRA_OPTIONS = "".join([
                     "&dt=rm" if self.rmField else "",
+                    "&dt=md" if self.mdField else "",
                 ])
                 GOOGLE_TRANSLATE_URL = BASE_URL + EXTRA_OPTIONS + "&q={}".format(query)
 
@@ -194,6 +198,19 @@ class GoogleTranslate(QDialog):
                     for d in data[0]:
                         translated += str(d[0] or "")
                         romanization += str(d[3] or "")
+                    definitions = []
+                    try:
+                        for d in data[12]:
+                            part_of_speech = d[0]
+                            definitions.append('<div class="eIKIse" style="color: #1a73e8; font-weight: bold;">{}</div>'.format(part_of_speech))
+                            definitions.append('<ol>')
+                            for m in d[1]:
+                                defn = m[0]
+                                definitions.append('<li class="fw3eif">{}</li>'.format(defn))
+                            definitions.append('</ol>')
+                    except IndexError:
+                        pass
+                    definitions = ''.join(definitions)
                 except Exception:
                     raise
 
@@ -223,6 +240,8 @@ class GoogleTranslate(QDialog):
                     note[self.targetField] = text
                     if self.rmField:
                         note[self.rmField] = rom
+                    if self.mdField:
+                        note[self.mdField] = definitions
                     note.flush()
 
                 self.browser.mw.progress.update("Processed {}/{} notes...".format(chunk["progress"], len(self.nids)))
