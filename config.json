@@ -5,6 +5,6 @@
 	"Target Language": "",
 	"Romanization Field": "",
 	"Definitions Field": "",
-	"Strip HTML": false,
+	"Strip HTML": true,
 	"Overwrite": false
 }
