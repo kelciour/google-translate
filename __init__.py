@@ -5,6 +5,7 @@ import requests
 import traceback
 import urllib
 import itertools
+import random
 import re
 
 from bs4 import BeautifulSoup
@@ -163,7 +164,8 @@ class GoogleTranslate(QDialog):
                     self.browser.mw.progress.update("Sleeping for 30 seconds...")
                     self.sleep(30)
                 elif num != 1:
-                    self.sleep(5)
+                    timeout = random.randint(4,8)
+                    self.sleep(5) if not self.mdField else self.sleep(timeout)
 
                 nids = chunk["nids"]
                 query = chunk["query"]
