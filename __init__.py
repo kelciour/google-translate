@@ -95,16 +95,24 @@ class GoogleTranslate(QDialog):
             else:
                 text = note[self.sourceField]
             text = re.sub(r'{{c(\d+)::(.*?)(::.*?)?}}', r'<c\1>\2</c>', text, flags=re.I)
+            if len(text.split()) == 1 and self.mdField:
+                batch_translate = False
+            else:
+                batch_translate = True
             text = urllib.parse.quote(text)
             if not chunk["nids"]:
                 chunk["nids"].append(nid)
                 chunk["query"] += text
-            elif len(chunk["query"] + text) < 2000 and not self.mdField:
+                chunk["batch_translate"] = batch_translate
+            elif chunk["batch_translate"] is False or batch_translate is False:
+                yield chunk
+                chunk = {"nids": [nid], "query": text, "progress": chunk["progress"], "batch_translate": batch_translate}
+            elif len(chunk["query"] + text) < 2000:
                 chunk["nids"].append(nid)
                 chunk["query"] += urllib.parse.quote("\n~~~\n") + text
             else:
                 yield chunk
-                chunk = {"nids": [nid], "query": text, "progress": chunk["progress"]}
+                chunk = {"nids": [nid], "query": text, "progress": chunk["progress"], "batch_translate": batch_translate}
         if chunk["nids"]:
             yield chunk
 
