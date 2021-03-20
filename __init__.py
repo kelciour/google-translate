@@ -49,7 +49,6 @@ class GoogleTranslate(QDialog):
         self.form.sourceField.setCurrentIndex(1)
         
         self.form.targetField.addItems(fields)
-        self.form.targetField.setCurrentIndex(len(fields)-1)
 
         self.form.rmField.addItems(fields)
         self.form.mdField.addItems(fields)
@@ -259,7 +258,7 @@ class GoogleTranslate(QDialog):
                             note[fld] = txt
 
                     saveField(self.targetField, text)
-                    saveField(self.rmField, ,rom)
+                    saveField(self.rmField, rom)
                     saveField(self.mdField, definitions)
 
                     note.flush()
