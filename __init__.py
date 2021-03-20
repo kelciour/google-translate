@@ -85,9 +85,13 @@ class GoogleTranslate(QDialog):
                continue
             if self.sourceField not in note:
                 continue
-            if self.targetField not in note:
-                continue
-            if note[self.targetField] and not self.config["Overwrite"]:
+            flag = False
+            for fld in [self.targetField, self.rmField, self.mdField]:
+                if not fld:
+                    continue
+                if self.config["Overwrite"] or note[fld] == "":
+                    flag = True
+            if not flag:
                 continue
             if self.config["Strip HTML"]:
                 soup = BeautifulSoup(note[self.sourceField], "html.parser")
@@ -247,11 +251,17 @@ class GoogleTranslate(QDialog):
                     text = text.strip()
                     if not self.config["Strip HTML"]:
                         text = self.fix(text)
-                    note[self.targetField] = text
-                    if self.rmField:
-                        note[self.rmField] = rom
-                    if self.mdField:
-                        note[self.mdField] = definitions
+
+                    def saveField(fld, txt):
+                        if not fld:
+                            return
+                        if self.config["Overwrite"] or note[fld] == "":
+                            note[fld] = txt
+
+                    saveField(self.targetField, text)
+                    saveField(self.rmField, ,rom)
+                    saveField(self.mdField, definitions)
+
                     note.flush()
 
                 self.browser.mw.progress.update("Processed {}/{} notes...".format(chunk["progress"], len(self.nids)))
