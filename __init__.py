@@ -173,6 +173,7 @@ class GoogleTranslate(QDialog):
             for num, chunk in enumerate(self.chunkify(), 1):
                 if num % 15 == 0:
                     self.browser.mw.progress.update("Sleeping for 30 seconds...")
+                    self.browser.mw.autosave()
                     self.sleep(30)
                 elif num != 1:
                     timeout = random.randint(4,8)
