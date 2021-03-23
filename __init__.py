@@ -199,6 +199,7 @@ class GoogleTranslate(QDialog):
                     "&dt=t" if self.targetField else "",
                     "&dt=rm" if self.rmField else "",
                     "&dt=md" if self.mdField else "",
+                    "&dt=ex" if self.mdField else "",
                 ])
                 GOOGLE_TRANSLATE_URL = BASE_URL + EXTRA_OPTIONS + "&q={}".format(query)
 
@@ -221,7 +222,10 @@ class GoogleTranslate(QDialog):
                             definitions.append('<ol>')
                             for m in d[1]:
                                 defn = m[0]
-                                definitions.append('<li class="fw3eif">{}</li>'.format(defn))
+                                ex = m[2] or ""
+                                if ex:
+                                    ex = '<div class="MZgjEb" style="color: #5f6368; font-size: 19px;"><q>{}</q></div>'.format(ex)
+                                definitions.append('<li class="fw3eif">{}{}</li>'.format(defn, ex))
                             definitions.append('</ol>')
                     except IndexError:
                         pass
