@@ -59,18 +59,33 @@ class GoogleTranslate(QDialog):
         fields = [""] + self.note.keys()
         
         self.form.sourceField.addItems(fields)
-        self.form.sourceField.setCurrentIndex(1)
-        
         self.form.targetField.addItems(fields)
-
         self.form.rmField.addItems(fields)
         self.form.mdField.addItems(fields)
-        
+
+        def onSourceFieldChanged():
+            self.sourceField = self.form.sourceField.currentText()
+            if self.sourceField == "":
+                return
+            for fld, cb in [
+                    ("Target Field", self.form.targetField),
+                    ("Romanization Field", self.form.rmField),
+                    ("Definitions Field", self.form.mdField),
+                ]:
+                cb.clear()
+                cb.addItems([f for f in fields if f != self.sourceField])
+                if self.config[fld] in self.note:
+                    idx = cb.findText(self.config[fld])
+                    cb.setCurrentIndex(idx)
+
         self.config = mw.addonManager.getConfig(__name__)
         
-        for fld, cb in [("Source Field", self.form.sourceField), ("Target Field", self.form.targetField), ("Romanization Field", self.form.rmField), ("Definitions Field", self.form.mdField)]:
-            if self.config[fld] and self.config[fld] in self.note:
-                cb.setCurrentIndex(fields.index(self.config[fld]))
+        self.form.sourceField.currentIndexChanged.connect(onSourceFieldChanged)
+
+        if self.config["Source Field"] in self.note:
+            self.form.sourceField.setCurrentIndex(fields.index(self.config["Source Field"]))
+        else:
+            self.form.sourceField.setCurrentIndex(1)
 
         for key, cb in [("Source Language", self.form.sourceLang), ("Target Language", self.form.targetLang)]:
             if self.config[key]:
@@ -178,6 +193,9 @@ class GoogleTranslate(QDialog):
 
         self.sourceLangCode = self.sourceLanguages[self.sourceLang]
         self.targetLangCode = self.targetLanguages[self.targetLang]
+
+        if self.sourceField == "":
+            return
 
         if self.browser:
             self.browser.mw.progress.start(parent=self.browser)
