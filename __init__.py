@@ -202,17 +202,16 @@ class GoogleTranslate(QDialog):
             return
 
         if self.browser:
-            self.progress_dialog = self.browser.mw.progress.start(parent=self.browser)
-            self.progress_dialog.setWindowIcon(QIcon(self.icon))
-            self.progress_dialog.setWindowTitle("Google Translate")
+            self.browser.mw.progress.start(parent=self.browser)
+            self.browser.mw.progress._win.setWindowIcon(QIcon(self.icon))
+            self.browser.mw.progress._win.setWindowTitle("Google Translate")
     
         error = None
         try: 
             for num, chunk in enumerate(self.chunkify(), 1):
-                if self.progress_dialog.wantCancel:
-                    return
-
                 if self.browser:
+                    if self.browser.mw.progress._win.wantCancel:
+                        return
                     if num % 15 == 0:
                         self.browser.mw.progress.update("Sleeping for 30 seconds...")
                         self.browser.mw.autosave()
@@ -334,7 +333,6 @@ class GoogleTranslate(QDialog):
         finally:
             if self.browser:
                 self.browser.mw.progress.finish()
-                self.progress_dialog = None
                 self.browser.mw.reset()
         
         mw.col.save()
