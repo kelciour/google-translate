@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>313</width>
+    <width>371</width>
     <height>214</height>
    </rect>
   </property>
@@ -146,8 +146,24 @@
       </property>
       <item>
        <layout class="QGridLayout" name="gridLayout_2">
-        <item row="0" column="1">
-         <widget class="QComboBox" name="rmField">
+        <item row="0" column="3">
+         <widget class="QLabel" name="label_8">
+          <property name="layoutDirection">
+           <enum>Qt::LeftToRight</enum>
+          </property>
+          <property name="styleSheet">
+           <string notr="true"/>
+          </property>
+          <property name="text">
+           <string>Examples:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="4">
+         <widget class="QComboBox" name="exField">
           <property name="minimumSize">
            <size>
             <width>90</width>
@@ -155,6 +171,22 @@
            </size>
           </property>
          </widget>
+        </item>
+        <item row="0" column="2">
+         <spacer name="horizontalSpacer_5">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>10</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
         </item>
         <item row="0" column="0">
          <widget class="QLabel" name="label_6">
@@ -166,7 +198,7 @@
           </property>
          </widget>
         </item>
-        <item row="0" column="2">
+        <item row="0" column="5">
          <spacer name="horizontalSpacer_3">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -184,6 +216,16 @@
         </item>
         <item row="1" column="1">
          <widget class="QComboBox" name="mdField">
+          <property name="minimumSize">
+           <size>
+            <width>90</width>
+            <height>0</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QComboBox" name="rmField">
           <property name="minimumSize">
            <size>
             <width>90</width>
@@ -228,7 +270,7 @@
         <string>HTML</string>
        </property>
        <property name="checked">
-        <bool>true</bool>
+        <bool>false</bool>
        </property>
        <attribute name="buttonGroup">
         <string notr="true">buttonGroup</string>
@@ -239,6 +281,9 @@
       <widget class="QRadioButton" name="radioButtonText">
        <property name="text">
         <string>Text</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
        </property>
        <attribute name="buttonGroup">
         <string notr="true">buttonGroup</string>

@@ -62,6 +62,7 @@ class GoogleTranslate(QDialog):
         self.form.targetField.addItems(fields)
         self.form.rmField.addItems(fields)
         self.form.mdField.addItems(fields)
+        self.form.exField.addItems(fields)
 
         def onSourceFieldChanged():
             self.sourceField = self.form.sourceField.currentText()
@@ -71,6 +72,7 @@ class GoogleTranslate(QDialog):
                     ("Target Field", self.form.targetField),
                     ("Romanization Field", self.form.rmField),
                     ("Definitions Field", self.form.mdField),
+                    ("Examples Field", self.form.exField),
                 ]:
                 cb.clear()
                 cb.addItems([f for f in fields if f != self.sourceField])
@@ -116,7 +118,7 @@ class GoogleTranslate(QDialog):
             if self.sourceField not in note:
                 continue
             flag = False
-            for fld in [self.targetField, self.rmField, self.mdField]:
+            for fld in [self.targetField, self.rmField, self.mdField, self.exField]:
                 if not fld:
                     continue
                 if self.config["Overwrite"] or note[fld] == "":
@@ -129,7 +131,7 @@ class GoogleTranslate(QDialog):
             else:
                 text = note[self.sourceField]
             text = re.sub(r'{{c(\d+)::(.*?)(::.*?)?}}', r'<c\1>\2</c>', text, flags=re.I)
-            if len(text.split()) == 1 and self.mdField:
+            if len(text.split()) == 1 and (self.mdField or self.exField):
                 batch_translate = False
             else:
                 batch_translate = True
@@ -173,11 +175,13 @@ class GoogleTranslate(QDialog):
         self.targetField = self.form.targetField.currentText()
         self.rmField = self.form.rmField.currentText()
         self.mdField = self.form.mdField.currentText()
+        self.exField = self.form.exField.currentText()
 
         self.config["Source Field"] = self.sourceField
         self.config["Target Field"] = self.targetField
         self.config["Romanization Field"] = self.rmField
         self.config["Definitions Field"] = self.mdField
+        self.config["Examples Field"] = self.exField
 
         self.sourceLang = self.form.sourceLang.currentText()
         self.targetLang = self.form.targetLang.currentText()
@@ -212,7 +216,7 @@ class GoogleTranslate(QDialog):
                         self.sleep(30)
                     elif num != 1:
                         timeout = random.randint(4,8)
-                        self.sleep(5) if not self.mdField else self.sleep(timeout)
+                        self.sleep(5) if not (self.mdField or self.exField) else self.sleep(timeout)
 
                 nids = chunk["nids"]
                 query = chunk["query"]
@@ -233,8 +237,8 @@ class GoogleTranslate(QDialog):
                 EXTRA_OPTIONS = "".join([
                     "&dt=t" if self.targetField else "",
                     "&dt=rm" if self.rmField else "",
-                    "&dt=md" if self.mdField else "",
-                    "&dt=ex" if self.mdField else "",
+                    "&dt=md" if self.mdField or self.exField else "",
+                    "&dt=ex" if self.mdField or self.exField else "",
                 ])
                 GOOGLE_TRANSLATE_URL = BASE_URL + EXTRA_OPTIONS + "&q={}".format(query)
 
@@ -268,6 +272,14 @@ class GoogleTranslate(QDialog):
                     except IndexError:
                         pass
                     definitions = ''.join(definitions)
+                    examples = []
+                    try:
+                        for d in data[13][0]:
+                            ex = d[0]
+                            examples.append('<div class="AZPoqf">{}</div>'.format(ex))
+                    except IndexError:
+                        pass
+                    examples = ''.join(examples)
                 except Exception:
                     raise
 
@@ -305,6 +317,7 @@ class GoogleTranslate(QDialog):
                     saveField(self.targetField, text)
                     saveField(self.rmField, rom)
                     saveField(self.mdField, definitions)
+                    saveField(self.exField, examples)
 
                     if self.editor:
                         self.editor.setNote(self.note)
