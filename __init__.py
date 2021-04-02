@@ -20,10 +20,22 @@ from . import form
 
 
 class GoogleTranslate(QDialog):
-    def __init__(self, browser, nids) -> None:
-        QDialog.__init__(self, browser)
-        self.browser = browser
-        self.nids = nids
+    def __init__(self, context, nids=None) -> None:
+        if nids is None:
+            self.editor = context
+            self.browser = None
+            self.parentWindow = self.editor.parentWindow
+            self.note = self.editor.note
+            self.nids = [None]
+        else:
+            self.editor = None
+            self.browser = context
+            self.parentWindow = self.browser
+            self.note = None
+            self.nids = nids
+
+        QDialog.__init__(self, self.parentWindow)
+
         self.form = form.Ui_Dialog()
         self.form.setupUi(self)
 
@@ -42,8 +54,9 @@ class GoogleTranslate(QDialog):
         self.form.targetLang.addItems(self.targetLanguages)
         self.form.targetLang.setCurrentIndex(list(self.targetLanguages).index("English"))
 
-        note = mw.col.getNote(nids[0])
-        fields = [""] + note.keys()
+        if not self.note:
+            self.note = mw.col.getNote(nids[0])
+        fields = [""] + self.note.keys()
         
         self.form.sourceField.addItems(fields)
         self.form.sourceField.setCurrentIndex(1)
@@ -56,7 +69,7 @@ class GoogleTranslate(QDialog):
         self.config = mw.addonManager.getConfig(__name__)
         
         for fld, cb in [("Source Field", self.form.sourceField), ("Target Field", self.form.targetField), ("Romanization Field", self.form.rmField), ("Definitions Field", self.form.mdField)]:
-            if self.config[fld] and self.config[fld] in note:
+            if self.config[fld] and self.config[fld] in self.note:
                 cb.setCurrentIndex(fields.index(self.config[fld]))
 
         for key, cb in [("Source Language", self.form.sourceLang), ("Target Language", self.form.targetLang)]:
@@ -78,7 +91,10 @@ class GoogleTranslate(QDialog):
     def chunkify(self):
         chunk = {"nids": [], "query": "", "progress": 0}
         for nid in self.nids:
-            note = mw.col.getNote(nid)
+            if self.editor:
+                note = self.note
+            else:
+                note = mw.col.getNote(nid)
             chunk["progress"] += 1
             if not note[self.sourceField]:
                continue
@@ -163,21 +179,22 @@ class GoogleTranslate(QDialog):
         self.sourceLangCode = self.sourceLanguages[self.sourceLang]
         self.targetLangCode = self.targetLanguages[self.targetLang]
 
-        self.browser.mw.progress.start(parent=self.browser)
-
-        self.browser.mw.progress._win.setWindowIcon(QIcon(self.icon))
-        self.browser.mw.progress._win.setWindowTitle("Google Translate")
+        if self.browser:
+            self.browser.mw.progress.start(parent=self.browser)
+            self.browser.mw.progress._win.setWindowIcon(QIcon(self.icon))
+            self.browser.mw.progress._win.setWindowTitle("Google Translate")
     
         error = None
         try: 
             for num, chunk in enumerate(self.chunkify(), 1):
-                if num % 15 == 0:
-                    self.browser.mw.progress.update("Sleeping for 30 seconds...")
-                    self.browser.mw.autosave()
-                    self.sleep(30)
-                elif num != 1:
-                    timeout = random.randint(4,8)
-                    self.sleep(5) if not self.mdField else self.sleep(timeout)
+                if self.browser:
+                    if num % 15 == 0:
+                        self.browser.mw.progress.update("Sleeping for 30 seconds...")
+                        self.browser.mw.autosave()
+                        self.sleep(30)
+                    elif num != 1:
+                        timeout = random.randint(4,8)
+                        self.sleep(5) if not self.mdField else self.sleep(timeout)
 
                 nids = chunk["nids"]
                 query = chunk["query"]
@@ -245,7 +262,8 @@ class GoogleTranslate(QDialog):
                 assert len(nids) == len(romanization), "Romanization: {} notes != {}\n\n-------------\n{}\n-------------\n".format(len(nids), len(romanization), urllib.parse.unquote(query))
 
                 for nid, text, rom in zip(nids, translated, romanization):
-                    note = mw.col.getNote(nid)
+                    if not self.editor:
+                        self.note = mw.col.getNote(nid)
                     text = re.sub(r' (<c\d+>) ', r' \1', text)
                     text = re.sub(r' (</c\d+>) ', r'\1 ', text)
                     text = re.sub(r'<c(\d+)>(.*?)</c>', r'{{c\1::\2}}', text)
@@ -260,28 +278,32 @@ class GoogleTranslate(QDialog):
                     def saveField(fld, txt):
                         if not fld:
                             return
-                        if self.config["Overwrite"] or note[fld] == "":
-                            note[fld] = txt
+                        if self.config["Overwrite"] or self.note[fld] == "":
+                            self.note[fld] = txt
 
                     saveField(self.targetField, text)
                     saveField(self.rmField, rom)
                     saveField(self.mdField, definitions)
 
-                    note.flush()
+                    if self.editor:
+                        self.editor.setNote(self.note)
+                    else:
+                        self.note.flush()
 
-                self.browser.mw.progress.update("Processed {}/{} notes...".format(chunk["progress"], len(self.nids)))
+                if self.browser:
+                    self.browser.mw.progress.update("Processed {}/{} notes...".format(chunk["progress"], len(self.nids)))
         except Exception as e:
             error = traceback.format_exc()
 
-        self.browser.mw.progress.finish()
-        
-        self.browser.mw.reset()
+        if self.browser:
+            self.browser.mw.progress.finish()
+            self.browser.mw.reset()
         
         mw.col.save()
 
         if error:
-            showText('Error:\n\n' + str(error), parent=self.browser)
-        else:
+            showText('Error:\n\n' + str(error), parent=self.parentWindow)
+        elif self.browser:
             showInfo("Processed {} notes.".format(len(self.nids)), parent=self.browser)
 
         
@@ -302,3 +324,16 @@ def setupMenu(browser):
 
 
 addHook("browser.setupMenus", setupMenu)
+
+
+def onSetupEditorButtons(buttons, editor):
+    icon = os.path.join(os.path.dirname(__file__), "favicon.ico")
+    b = editor.addButton(icon,
+                         "Google Translate",
+                         lambda e=editor: GoogleTranslate(e),
+                         tip="{}".format("Google Translate"))
+    buttons.append(b)
+    return buttons
+
+from aqt.gui_hooks import editor_did_init_buttons
+editor_did_init_buttons.append(onSetupEditorButtons)
