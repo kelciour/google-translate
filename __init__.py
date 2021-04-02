@@ -246,9 +246,12 @@ class GoogleTranslate(QDialog):
                     data = r.json()
                     translated = ""
                     romanization = ""
-                    for d in data[0]:
-                        translated += str(d[0] or "")
-                        romanization += str(d[3] or "")
+                    for d in (data[0] or []):
+                        try:
+                            translated += str(d[0] or "")
+                            romanization += str(d[3] or "")
+                        except IndexError:
+                            pass
                     definitions = []
                     try:
                         for d in data[12]:
