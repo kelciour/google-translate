@@ -125,16 +125,15 @@ class GoogleTranslate(QDialog):
                     flag = True
             if not flag:
                 continue
-            if self.config["Strip HTML"]:
-                soup = BeautifulSoup(note[self.sourceField], "html.parser")
-                text = soup.get_text()
-            else:
-                text = note[self.sourceField]
-            text = re.sub(r'{{c(\d+)::(.*?)(::.*?)?}}', r'<c\1>\2</c>', text, flags=re.I)
+            soup = BeautifulSoup(note[self.sourceField], "html.parser")
+            text = soup.get_text()
             if len(text.split()) == 1 and (self.mdField or self.exField):
                 batch_translate = False
             else:
                 batch_translate = True
+            if not self.config["Strip HTML"] and batch_translate:
+                text = note[self.sourceField]
+            text = re.sub(r'{{c(\d+)::(.*?)(::.*?)?}}', r'<c\1>\2</c>', text, flags=re.I)
             text = urllib.parse.quote(text)
             if not chunk["nids"]:
                 chunk["nids"].append(nid)
