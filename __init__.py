@@ -7,6 +7,8 @@ import urllib
 import itertools
 import random
 import re
+import sys
+import os
 
 from bs4 import BeautifulSoup
 
@@ -18,9 +20,14 @@ from aqt import mw
 from . import lang
 from . import form
 
+addon_dir = os.path.dirname(os.path.realpath(__file__))
+vendor_dir = os.path.join(addon_dir, 'vendor')
+sys.path.append(vendor_dir)
+
 
 class GoogleTranslate(QDialog):
     def __init__(self, context, nids=None) -> None:
+        self.translator = None
         if nids is None:
             self.editor = context
             self.browser = None
@@ -63,6 +70,7 @@ class GoogleTranslate(QDialog):
         self.form.rmField.addItems(fields)
         self.form.mdField.addItems(fields)
         self.form.exField.addItems(fields)
+        self.form.atField.addItems(fields)
 
         def onSourceFieldChanged():
             self.sourceField = self.form.sourceField.currentText()
@@ -73,6 +81,7 @@ class GoogleTranslate(QDialog):
                     ("Romanization Field", self.form.rmField),
                     ("Definitions Field", self.form.mdField),
                     ("Examples Field", self.form.exField),
+                    ("Alternative Translations Field", self.form.atField),
                 ]:
                 cb.clear()
                 cb.addItems([f for f in fields if f != self.sourceField])
@@ -118,7 +127,7 @@ class GoogleTranslate(QDialog):
             if self.sourceField not in note:
                 continue
             flag = False
-            for fld in [self.targetField, self.rmField, self.mdField, self.exField]:
+            for fld in [self.targetField, self.rmField, self.mdField, self.exField, self.atField]:
                 if not fld:
                     continue
                 if self.config["Overwrite"] or note[fld] == "":
@@ -127,7 +136,7 @@ class GoogleTranslate(QDialog):
                 continue
             soup = BeautifulSoup(note[self.sourceField], "html.parser")
             text = soup.get_text()
-            if len(text.split()) == 1 and (self.mdField or self.exField):
+            if len(text.split()) == 1 and (self.mdField or self.exField or self.atField):
                 batch_translate = False
             else:
                 batch_translate = True
@@ -175,12 +184,14 @@ class GoogleTranslate(QDialog):
         self.rmField = self.form.rmField.currentText()
         self.mdField = self.form.mdField.currentText()
         self.exField = self.form.exField.currentText()
+        self.atField = self.form.atField.currentText()
 
         self.config["Source Field"] = self.sourceField
         self.config["Target Field"] = self.targetField
         self.config["Romanization Field"] = self.rmField
         self.config["Definitions Field"] = self.mdField
         self.config["Examples Field"] = self.exField
+        self.config["Alternative Translations Field"] = self.atField
 
         self.sourceLang = self.form.sourceLang.currentText()
         self.targetLang = self.form.targetLang.currentText()
@@ -217,7 +228,7 @@ class GoogleTranslate(QDialog):
                         self.sleep(30)
                     elif num != 1:
                         timeout = random.randint(4,8)
-                        self.sleep(5) if not (self.mdField or self.exField) else self.sleep(timeout)
+                        self.sleep(5) if not (self.mdField or self.exField or self.atField) else self.sleep(timeout)
 
                 nids = chunk["nids"]
                 query = chunk["query"]
@@ -295,6 +306,37 @@ class GoogleTranslate(QDialog):
                 romanization += [""] * (len(nids) - len(romanization))
                 assert len(nids) == len(romanization), "Romanization: {} notes != {}\n\n-------------\n{}\n-------------\n".format(len(nids), len(romanization), urllib.parse.unquote(query))
 
+                alt_translations = ''
+                if self.atField and len(nids) == 1:
+                    if self.translator is None:
+                        from googletrans import Translator
+                        self.translator = Translator()
+                    translation = self.translator.translate(urllib.parse.unquote(query), src=self.sourceLangCode, dest=self.targetLangCode)
+                    data = translation.extra_data['parsed']
+                    freq_color_blue = 'rgb(26,115,232)'
+                    freq_color_gray = 'rgb(218,220,224)'
+                    freq_info = '<span class="YF3enc" style="padding:7px 0px;display:inline-flex;"><div class="{}" style="border-radius:1px;height:6px;margin:1px;width:10px;background-color:{};"></div><div class="{}" style="border-radius:1px;height:6px;margin:1px;width:10px;background-color:{};"></div><div class="{}" style="border-radius:1px;height:6px;margin:1px;width:10px;background-color:{};"></div></span>'
+                    try:
+                        for d in data[3][5][0]:
+                            part_of_speech = d[0]
+                            tbody_padding_top = ''
+                            if alt_translations:
+                                tbody_padding_top = 'padding-top:1em;'
+                            alt_translations += '<tbody>'
+                            alt_translations += '<tr><th colspan="3" style="color:#1a73e8;font-weight:bold;text-align:left;{}">{}</th></tr>'.format(tbody_padding_top, part_of_speech)
+                            for t in d[1]:
+                                freq_colors = {
+                                    1: ('EiZ8Dd', freq_color_blue, 'EiZ8Dd', freq_color_blue, 'EiZ8Dd', freq_color_blue),
+                                    2: ('EiZ8Dd', freq_color_blue, 'EiZ8Dd', freq_color_blue, 'fXx9Lc', freq_color_gray),
+                                    3: ('EiZ8Dd', freq_color_blue, 'fXx9Lc', freq_color_gray, 'fXx9Lc', freq_color_gray),
+                                }[t[3]]
+                                freq = freq_info.format(*freq_colors)
+                                alt_translations += '<tr><td>{}</td><td style="color: #5f6368; font-size: 19px;">{}</td><td>{}</td></tr>'.format(t[0], ', '.join(t[2]), freq)
+                            alt_translations += '</tbody>'
+                        alt_translations = '<table>' + alt_translations + '</table>'
+                    except IndexError:
+                        pass
+
                 for nid, text, rom in zip(nids, translated, romanization):
                     if not self.editor:
                         self.note = mw.col.getNote(nid)
@@ -319,6 +361,7 @@ class GoogleTranslate(QDialog):
                     saveField(self.rmField, rom)
                     saveField(self.mdField, definitions)
                     saveField(self.exField, examples)
+                    saveField(self.atField, alt_translations)
 
                     if self.editor:
                         self.editor.setNote(self.note)
