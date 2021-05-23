@@ -334,6 +334,8 @@ class GoogleTranslate(QDialog):
                                 alt_translations += '<tr><td>{}</td><td style="color: #5f6368; font-size: 19px;">{}</td><td>{}</td></tr>'.format(t[0], ', '.join(t[2]), freq)
                             alt_translations += '</tbody>'
                         alt_translations = '<table>' + alt_translations + '</table>'
+                    except TypeError:
+                        pass
                     except IndexError:
                         pass
 
