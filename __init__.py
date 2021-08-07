@@ -270,16 +270,28 @@ class GoogleTranslate(QDialog):
                             pass
                     definitions = []
                     try:
+                        langcode = data[2]
+                    except IndexError:
+                        langcode = ""
+                    try:
                         for d in data[12]:
                             part_of_speech = d[0]
                             definitions.append('<div class="eIKIse" style="color: #1a73e8; font-weight: bold;">{}</div>'.format(part_of_speech))
                             definitions.append('<ol>')
                             for m in d[1]:
                                 defn = m[0]
-                                ex = m[2] or ""
-                                if ex:
-                                    ex = '<div class="MZgjEb" style="color: #5f6368; font-size: 19px;"><q>{}</q></div>'.format(ex)
-                                definitions.append('<li class="fw3eif">{}{}</li>'.format(defn, ex))
+                                try:
+                                    ex = m[2] or ""
+                                    if ex:
+                                        if langcode == 'ja':
+                                            ex = re.sub(r'^「(.+)」$', r' \1 ', ex)
+                                        defn += '<div class="MZgjEb" style="color: #5f6368; font-size: 19px;"'
+                                        if langcode:
+                                            defn += ' lang="{}"'.format(langcode)
+                                        defn += '><q>{}</q></div>'.format(ex)
+                                except IndexError:
+                                    pass
+                                definitions.append('<li class="fw3eif">{}</li>'.format(defn))
                             definitions.append('</ol>')
                     except IndexError:
                         pass
