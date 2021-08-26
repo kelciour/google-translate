@@ -67,6 +67,7 @@ class GoogleTranslate(QDialog):
         
         self.form.sourceField.addItems(fields)
         self.form.targetField.addItems(fields)
+        self.form.rmTargetField.addItems(fields)
         self.form.rmField.addItems(fields)
         self.form.mdField.addItems(fields)
         self.form.exField.addItems(fields)
@@ -78,6 +79,7 @@ class GoogleTranslate(QDialog):
                 return
             for fld, cb in [
                     ("Target Field", self.form.targetField),
+                    ("Target Romanization Field", self.form.rmTargetField),
                     ("Romanization Field", self.form.rmField),
                     ("Definitions Field", self.form.mdField),
                     ("Examples Field", self.form.exField),
@@ -127,7 +129,7 @@ class GoogleTranslate(QDialog):
             if self.sourceField not in note:
                 continue
             flag = False
-            for fld in [self.targetField, self.rmField, self.mdField, self.exField, self.atField]:
+            for fld in [self.targetField, self.rmTargetField, self.rmField, self.mdField, self.exField, self.atField]:
                 if not fld:
                     continue
                 if self.config["Overwrite"] or note[fld] == "":
@@ -181,6 +183,7 @@ class GoogleTranslate(QDialog):
 
         self.sourceField = self.form.sourceField.currentText()
         self.targetField = self.form.targetField.currentText()
+        self.rmTargetField = self.form.rmTargetField.currentText()
         self.rmField = self.form.rmField.currentText()
         self.mdField = self.form.mdField.currentText()
         self.exField = self.form.exField.currentText()
@@ -188,6 +191,7 @@ class GoogleTranslate(QDialog):
 
         self.config["Source Field"] = self.sourceField
         self.config["Target Field"] = self.targetField
+        self.config["Target Romanization Field"] = self.rmTargetField
         self.config["Romanization Field"] = self.rmField
         self.config["Definitions Field"] = self.mdField
         self.config["Examples Field"] = self.exField
@@ -248,7 +252,7 @@ class GoogleTranslate(QDialog):
                     "&sl={}&tl={}".format(self.sourceLangCode, self.targetLangCode)
                 EXTRA_OPTIONS = "".join([
                     "&dt=t" if self.targetField else "",
-                    "&dt=rm" if self.rmField else "",
+                    "&dt=rm" if self.rmField or self.rmTargetField else "",
                     "&dt=md" if self.mdField or self.exField else "",
                     "&dt=ex" if self.mdField or self.exField else "",
                 ])
@@ -262,12 +266,11 @@ class GoogleTranslate(QDialog):
                     data = r.json()
                     translated = ""
                     romanization = ""
+                    romanizationTarget = ""
                     for d in (data[0] or []):
-                        try:
-                            translated += str(d[0] or "")
-                            romanization += str(d[3] or "")
-                        except IndexError:
-                            pass
+                        translated += d[0] if len(d) > 0 and d[0] else ""
+                        romanization += d[3] if len(d) > 3 and d[3] else ""
+                        romanizationTarget += d[2] if len(d) > 2 and d[2] else ""
                     definitions = []
                     try:
                         langcode = data[2]
@@ -318,6 +321,10 @@ class GoogleTranslate(QDialog):
                 romanization += [""] * (len(nids) - len(romanization))
                 assert len(nids) == len(romanization), "Romanization: {} notes != {}\n\n-------------\n{}\n-------------\n".format(len(nids), len(romanization), urllib.parse.unquote(query))
 
+                romanizationTarget = re.split(r'\s*[~〜]{3}\s*', romanizationTarget)
+                romanizationTarget += [""] * (len(nids) - len(romanizationTarget))
+                assert len(nids) == len(romanizationTarget), "romanization target: {} notes != {}\n\n-------------\n{}\n-------------\n".format(len(nids), len(romanizationTarget), urllib.parse.unquote(query))
+
                 alt_translations = ''
                 if self.atField and len(nids) == 1:
                     if self.translator is None:
@@ -351,7 +358,7 @@ class GoogleTranslate(QDialog):
                     except IndexError:
                         pass
 
-                for nid, text, rom in zip(nids, translated, romanization):
+                for nid, text, rom, romTarget in zip(nids, translated, romanization, romanizationTarget):
                     if not self.editor:
                         self.note = mw.col.getNote(nid)
                     text = re.sub(r' (<c\d+>) ', r' \1', text)
@@ -372,6 +379,7 @@ class GoogleTranslate(QDialog):
                             self.note[fld] = txt
 
                     saveField(self.targetField, text)
+                    saveField(self.rmTargetField, romTarget)
                     saveField(self.rmField, rom)
                     saveField(self.mdField, definitions)
                     saveField(self.exField, examples)
