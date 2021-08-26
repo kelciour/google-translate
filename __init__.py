@@ -84,7 +84,7 @@ class GoogleTranslate(QDialog):
                     ("Alternative Translations Field", self.form.atField),
                 ]:
                 cb.clear()
-                cb.addItems([f for f in fields if f != self.sourceField])
+                cb.addItems([f for f in fields if f != self.sourceField or (f == self.sourceField and fld == "Target Field")])
                 if self.config[fld] in self.note:
                     idx = cb.findText(self.config[fld])
                     cb.setCurrentIndex(idx)
