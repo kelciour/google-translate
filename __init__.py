@@ -398,7 +398,8 @@ class GoogleTranslate(QDialog):
                 self.browser.mw.progress.finish()
                 self.browser.mw.reset()
         
-        mw.col.save()
+        if self.browser:
+            mw.col.save()
 
         if error:
             showText('Error:\n\n' + str(error), parent=self.parentWindow)
