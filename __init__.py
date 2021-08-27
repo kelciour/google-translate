@@ -249,9 +249,8 @@ class GoogleTranslate(QDialog):
                 assert len(nids) == len(rows), "Chunks: {} != {}".format(len(nids), len(rows))
 
                 BASE_URL = "https://translate.googleapis.com/translate_a/single?client=gtx" \
-                    "&sl={}&tl={}".format(self.sourceLangCode, self.targetLangCode)
+                    "&sl={}&tl={}&dt=t".format(self.sourceLangCode, self.targetLangCode)
                 EXTRA_OPTIONS = "".join([
-                    "&dt=t" if self.targetField else "",
                     "&dt=rm" if self.rmField or self.rmTargetField else "",
                     "&dt=md" if self.mdField or self.exField else "",
                     "&dt=ex" if self.mdField or self.exField else "",
