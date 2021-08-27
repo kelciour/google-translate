@@ -220,6 +220,8 @@ class GoogleTranslate(QDialog):
             self.browser.mw.progress._win.setWindowIcon(QIcon(self.icon))
             self.browser.mw.progress._win.setWindowTitle("Google Translate")
     
+        self.updated = False
+
         error = None
         try: 
             for num, chunk in enumerate(self.chunkify(), 1):
@@ -374,6 +376,8 @@ class GoogleTranslate(QDialog):
                     def saveField(fld, txt):
                         if not fld:
                             return
+                        if self.note[fld] != txt:
+                            self.updated = True
                         if self.config["Overwrite"] or self.note[fld] == "":
                             self.note[fld] = txt
 
@@ -405,6 +409,8 @@ class GoogleTranslate(QDialog):
             showText('Error:\n\n' + str(error), parent=self.parentWindow)
         elif self.browser:
             showInfo("Processed {} notes.".format(len(self.nids)), parent=self.browser)
+        elif self.editor and not self.updated:
+            tooltip("No fields updated.", parent=self.parentWindow)
 
         
 def onGoogleTranslate(browser):
