@@ -110,6 +110,7 @@ class GoogleTranslate(QDialog):
             self.form.radioButtonHTML.setChecked(True)
 
         self.form.checkBoxOverwrite.setChecked(self.config["Overwrite"])
+        self.form.checkBoxTranslatedDefinitions.setChecked(self.config["Translated Definitions?"])
 
         self.icon = os.path.join(os.path.dirname(__file__), "favicon.ico")
         self.setWindowIcon(QIcon(self.icon))
@@ -206,6 +207,7 @@ class GoogleTranslate(QDialog):
         self.config["Strip HTML"] = self.form.radioButtonText.isChecked()
 
         self.config["Overwrite"] = self.form.checkBoxOverwrite.isChecked()
+        self.config["Translated Definitions?"] = self.form.checkBoxTranslatedDefinitions.isChecked()
 
         mw.addonManager.writeConfig(__name__, self.config)
 
@@ -261,10 +263,7 @@ class GoogleTranslate(QDialog):
 
                 headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.122 Safari/537.36" }
                 
-                try:
-                    r = requests.get(GOOGLE_TRANSLATE_URL, headers=headers, timeout=15)
-                    r.raise_for_status()
-                    data = r.json()
+                def parse_translated_data(data):
                     translated = ""
                     romanization = ""
                     romanizationTarget = ""
@@ -308,6 +307,13 @@ class GoogleTranslate(QDialog):
                     except IndexError:
                         pass
                     examples = ''.join(examples)
+                    return translated, romanization, romanizationTarget, definitions, examples
+
+                try:
+                    r = requests.get(GOOGLE_TRANSLATE_URL, headers=headers, timeout=15)
+                    r.raise_for_status()
+                    data = r.json()
+                    translated, romanization, romanizationTarget, definitions, examples = parse_translated_data(data)
                 except Exception:
                     raise
 
@@ -325,6 +331,15 @@ class GoogleTranslate(QDialog):
                 romanizationTarget = re.split(r'\s*[~〜]{3}\s*', romanizationTarget)
                 romanizationTarget += [""] * (len(nids) - len(romanizationTarget))
                 assert len(nids) == len(romanizationTarget), "romanization target: {} notes != {}\n\n-------------\n{}\n-------------\n".format(len(nids), len(romanizationTarget), urllib.parse.unquote(query))
+
+                if self.config["Translated Definitions?"] and len(nids) == 1:
+                    BASE_URL = "https://translate.googleapis.com/translate_a/single?client=gtx" \
+                    "&sl={}&tl={}&dt=t".format(self.targetLangCode, self.sourceLangCode)
+                    GOOGLE_TRANSLATE_URL = BASE_URL + EXTRA_OPTIONS + "&q={}".format(translated[0])
+                    r = requests.get(GOOGLE_TRANSLATE_URL, headers=headers, timeout=15)
+                    r.raise_for_status()
+                    data = r.json()
+                    _, _, _, definitions, examples = parse_translated_data(data)
 
                 alt_translations = ''
                 if self.atField and len(nids) == 1:

@@ -9,5 +9,6 @@
 	"Examples Field": "",
 	"Alternative Translations Field": "",
 	"Strip HTML": true,
-	"Overwrite": false
+	"Overwrite": false,
+	"Translated Definitions?": false
 }
