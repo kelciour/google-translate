@@ -335,7 +335,7 @@ class GoogleTranslate(QDialog):
                 romanizationTarget += [""] * (len(nids) - len(romanizationTarget))
                 assert len(nids) == len(romanizationTarget), "romanization target: {} notes != {}\n\n-------------\n{}\n-------------\n".format(len(nids), len(romanizationTarget), urllib.parse.unquote(query))
 
-                if self.config["Show Extra Options"] and self.config["Translated Definitions?"] and len(nids) == 1:
+                if self.config["Show Extra Options"] and self.config["Translated Definitions?"] and len(nids) == 1 and (self.mdField or self.exField):
                     BASE_URL = "https://translate.googleapis.com/translate_a/single?client=gtx" \
                     "&sl={}&tl={}&dt=t".format(self.targetLangCode, self.sourceLangCode)
                     GOOGLE_TRANSLATE_URL = BASE_URL + EXTRA_OPTIONS + "&q={}".format(translated[0])
