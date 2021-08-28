@@ -269,9 +269,9 @@ class GoogleTranslate(QDialog):
                     romanization = ""
                     romanizationTarget = ""
                     for d in (data[0] or []):
-                        translated += d[0] if len(d) > 0 and d[0] else ""
-                        romanization += d[3] if len(d) > 3 and d[3] else ""
-                        romanizationTarget += d[2] if len(d) > 2 and d[2] else ""
+                        translated += d[0] if d is not None and len(d) > 0 and d[0] else ""
+                        romanization += d[3] if d is not None and len(d) > 3 and d[3] else ""
+                        romanizationTarget += d[2] if d is not None and len(d) > 2 and d[2] else ""
                     definitions = []
                     try:
                         langcode = data[2]
