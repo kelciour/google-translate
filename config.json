@@ -10,5 +10,6 @@
 	"Alternative Translations Field": "",
 	"Strip HTML": true,
 	"Overwrite": false,
-	"Translated Definitions?": false
+	"Translated Definitions?": false,
+	"Show Extra Options": false
 }
