@@ -217,6 +217,8 @@ class GoogleTranslate(QDialog):
         self.sourceLangCode = self.sourceLanguages[self.sourceLang]
         self.targetLangCode = self.targetLanguages[self.targetLang]
 
+        assert self.config["Alternative Translations Meanings Visibility"] in ["show", "hide", "remove"], self.config["Alternative Translations Meanings Visibility"]
+
         if self.sourceField == "":
             return
 
@@ -369,7 +371,14 @@ class GoogleTranslate(QDialog):
                                     3: ('EiZ8Dd', freq_color_blue, 'fXx9Lc', freq_color_gray, 'fXx9Lc', freq_color_gray),
                                 }[t[3]]
                                 freq = freq_info.format(*freq_colors)
-                                alt_translations += '<tr><td>{}</td><td style="color: #5f6368; font-size: 19px;">{}</td><td>{}</td></tr>'.format(t[0], ', '.join(t[2]), freq)
+                                alt_translations += '<tr><td>{}</td>'.format(t[0])
+                                if self.config["Alternative Translations Meanings Visibility"] == "remove":
+                                    alt_translations += '<td></td>'
+                                elif self.config["Alternative Translations Meanings Visibility"] == "hide":
+                                    alt_translations += '<td style="font-size: 0;">{}</td>'.format(', '.join(t[2]))
+                                else:
+                                    alt_translations += '<td style="color: #5f6368; font-size: 19px;">{}</td>'.format(', '.join(t[2]))
+                                alt_translations += '<td>{}</td></tr>'.format(freq)
                             alt_translations += '</tbody>'
                         alt_translations = '<table>' + alt_translations + '</table>'
                     except TypeError:

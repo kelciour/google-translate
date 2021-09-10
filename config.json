@@ -11,5 +11,6 @@
 	"Strip HTML": true,
 	"Overwrite": false,
 	"Translated Definitions?": false,
-	"Show Extra Options": false
+	"Show Extra Options": false,
+	"Alternative Translations Meanings Visibility": "show"
 }
