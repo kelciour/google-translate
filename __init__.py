@@ -1,6 +1,7 @@
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 import time
+import html
 import requests
 import traceback
 import urllib
@@ -12,6 +13,8 @@ import os
 
 from bs4 import BeautifulSoup
 
+from anki.template import TemplateRenderContext
+from anki import hooks
 from anki.hooks import addHook
 from aqt.utils import tooltip, showInfo, showText
 from aqt.qt import *
@@ -24,6 +27,109 @@ addon_dir = os.path.dirname(os.path.realpath(__file__))
 vendor_dir = os.path.join(addon_dir, 'vendor')
 sys.path.append(vendor_dir)
 
+
+def translate(query, options, is_filter=False):
+    sourceLangCode = options['sourceLangCode']
+    targetLangCode = options['targetLangCode']
+    rmField = options.get('rmField', '')
+    rmTargetField = options.get('rmTargetField', '')
+    mdField = options.get('mdField', '')
+    exField = options.get('exField', '')
+
+    BASE_URL = "https://translate.googleapis.com/translate_a/single?client=gtx" \
+        "&sl={}&tl={}&dt=t".format(sourceLangCode, targetLangCode)
+    EXTRA_OPTIONS = "".join([
+        "&dt=rm" if is_filter or rmField or rmTargetField else "",
+        "&dt=md" if is_filter or mdField or exField else "",
+        "&dt=ex" if is_filter or mdField or exField else "",
+    ])
+    GOOGLE_TRANSLATE_URL = BASE_URL + EXTRA_OPTIONS + "&q={}".format(query)
+
+    headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.122 Safari/537.36" }
+
+    def parse_translated_data(data):
+        translated = ""
+        romanization = ""
+        romanizationTarget = ""
+        for d in (data[0] or []):
+            translated += d[0] if d is not None and len(d) > 0 and d[0] else ""
+            romanization += d[3] if d is not None and len(d) > 3 and d[3] else ""
+            romanizationTarget += d[2] if d is not None and len(d) > 2 and d[2] else ""
+        definitions = []
+        try:
+            langcode = data[2]
+        except IndexError:
+            langcode = ""
+        try:
+            for d in data[12]:
+                part_of_speech = d[0]
+                definitions.append('<div class="eIKIse" style="color: #1a73e8; font-weight: bold;">{}</div>'.format(part_of_speech))
+                definitions.append('<ol>')
+                for m in d[1]:
+                    defn = m[0]
+                    try:
+                        ex = m[2] or ""
+                        if ex:
+                            if langcode == 'ja':
+                                ex = re.sub(r'^「(.+)」$', r' \1 ', ex)
+                            defn += '<div class="MZgjEb" style="color: #5f6368; font-size: 19px;"'
+                            if langcode:
+                                defn += ' lang="{}"'.format(langcode)
+                            defn += '><q>{}</q></div>'.format(ex)
+                    except IndexError:
+                        pass
+                    definitions.append('<li class="fw3eif">{}</li>'.format(defn))
+                definitions.append('</ol>')
+        except IndexError:
+            pass
+        definitions = ''.join(definitions)
+        examples = []
+        try:
+            for d in data[13][0]:
+                ex = d[0]
+                examples.append('<div class="AZPoqf">{}</div>'.format(ex))
+        except IndexError:
+            pass
+        examples = ''.join(examples)
+        return {
+            "t": translated,
+            "rm": romanization,
+            "rmt": romanizationTarget,
+            "md": definitions,
+            "ex": examples
+        }
+
+    try:
+        r = requests.get(GOOGLE_TRANSLATE_URL, headers=headers, timeout=15)
+        r.raise_for_status()
+        data = r.json()
+        return parse_translated_data(data)
+    except Exception:
+        raise
+
+sourceLanguages = None
+
+def getSourceLanguages():
+    global sourceLanguages
+    if sourceLanguages is not None:
+        return sourceLanguages
+    sourceLanguages = {}
+    for x in lang.source_languages:
+        assert x["name"] not in sourceLanguages
+        sourceLanguages[x["name"]] = x["code"]
+    return sourceLanguages
+
+targetLanguages = None
+
+def getTargetLanguages():
+    global targetLanguages
+    if targetLanguages is not None:
+        return targetLanguages
+    targetLanguages = {}
+    for x in lang.target_languages:
+        assert x["name"] not in targetLanguages
+        targetLanguages[x["name"]] = x["code"]
+    return targetLanguages
 
 class GoogleTranslate(QDialog):
     def __init__(self, context, nids=None) -> None:
@@ -46,25 +152,18 @@ class GoogleTranslate(QDialog):
         self.form = form.Ui_Dialog()
         self.form.setupUi(self)
 
-        self.sourceLanguages = {}
-        for x in lang.source_languages:
-            assert x["name"] not in self.sourceLanguages
-            self.sourceLanguages[x["name"]] = x["code"]
-
-        self.targetLanguages = {}
-        for x in lang.target_languages:
-            assert x["name"] not in self.targetLanguages
-            self.targetLanguages[x["name"]] = x["code"]
+        self.sourceLanguages = getSourceLanguages()
+        self.targetLanguages = getTargetLanguages()
 
         self.form.sourceLang.addItems(self.sourceLanguages)
-        
+
         self.form.targetLang.addItems(self.targetLanguages)
         self.form.targetLang.setCurrentIndex(list(self.targetLanguages).index("English"))
 
         if not self.note:
             self.note = mw.col.getNote(nids[0])
         fields = [""] + self.note.keys()
-        
+
         self.form.sourceField.addItems(fields)
         self.form.targetField.addItems(fields)
         self.form.rmTargetField.addItems(fields)
@@ -92,7 +191,7 @@ class GoogleTranslate(QDialog):
                     cb.setCurrentIndex(idx)
 
         self.config = mw.addonManager.getConfig(__name__)
-        
+
         self.form.sourceField.currentIndexChanged.connect(onSourceFieldChanged)
 
         if self.config["Source Field"] in self.note:
@@ -230,11 +329,11 @@ class GoogleTranslate(QDialog):
             self.browser.mw.progress.start(parent=self.browser)
             self.browser.mw.progress._win.setWindowIcon(QIcon(self.icon))
             self.browser.mw.progress._win.setWindowTitle("Google Translate")
-    
+
         self.updated = False
 
         error = None
-        try: 
+        try:
             for num, chunk in enumerate(self.chunkify(), 1):
                 if self.browser:
                     if self.browser.mw.progress._win.wantCancel:
@@ -261,70 +360,16 @@ class GoogleTranslate(QDialog):
                 rows = query.split(urllib.parse.quote("\n~~~\n"))
                 assert len(nids) == len(rows), "Chunks: {} != {}".format(len(nids), len(rows))
 
-                BASE_URL = "https://translate.googleapis.com/translate_a/single?client=gtx" \
-                    "&sl={}&tl={}&dt=t".format(self.sourceLangCode, self.targetLangCode)
-                EXTRA_OPTIONS = "".join([
-                    "&dt=rm" if self.rmField or self.rmTargetField else "",
-                    "&dt=md" if self.mdField or self.exField else "",
-                    "&dt=ex" if self.mdField or self.exField else "",
-                ])
-                GOOGLE_TRANSLATE_URL = BASE_URL + EXTRA_OPTIONS + "&q={}".format(query)
+                options = {}
+                options['sourceLangCode'] = self.sourceLangCode
+                options['targetLangCode'] = self.targetLangCode
+                options['rmField'] = self.rmField
+                options['rmTargetField'] = self.rmTargetField
+                options['mdField'] = self.mdField
+                options['exField'] = self.exField
 
-                headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.122 Safari/537.36" }
-                
-                def parse_translated_data(data):
-                    translated = ""
-                    romanization = ""
-                    romanizationTarget = ""
-                    for d in (data[0] or []):
-                        translated += d[0] if d is not None and len(d) > 0 and d[0] else ""
-                        romanization += d[3] if d is not None and len(d) > 3 and d[3] else ""
-                        romanizationTarget += d[2] if d is not None and len(d) > 2 and d[2] else ""
-                    definitions = []
-                    try:
-                        langcode = data[2]
-                    except IndexError:
-                        langcode = ""
-                    try:
-                        for d in data[12]:
-                            part_of_speech = d[0]
-                            definitions.append('<div class="eIKIse" style="color: #1a73e8; font-weight: bold;">{}</div>'.format(part_of_speech))
-                            definitions.append('<ol>')
-                            for m in d[1]:
-                                defn = m[0]
-                                try:
-                                    ex = m[2] or ""
-                                    if ex:
-                                        if langcode == 'ja':
-                                            ex = re.sub(r'^「(.+)」$', r' \1 ', ex)
-                                        defn += '<div class="MZgjEb" style="color: #5f6368; font-size: 19px;"'
-                                        if langcode:
-                                            defn += ' lang="{}"'.format(langcode)
-                                        defn += '><q>{}</q></div>'.format(ex)
-                                except IndexError:
-                                    pass
-                                definitions.append('<li class="fw3eif">{}</li>'.format(defn))
-                            definitions.append('</ol>')
-                    except IndexError:
-                        pass
-                    definitions = ''.join(definitions)
-                    examples = []
-                    try:
-                        for d in data[13][0]:
-                            ex = d[0]
-                            examples.append('<div class="AZPoqf">{}</div>'.format(ex))
-                    except IndexError:
-                        pass
-                    examples = ''.join(examples)
-                    return translated, romanization, romanizationTarget, definitions, examples
-
-                try:
-                    r = requests.get(GOOGLE_TRANSLATE_URL, headers=headers, timeout=15)
-                    r.raise_for_status()
-                    data = r.json()
-                    translated, romanization, romanizationTarget, definitions, examples = parse_translated_data(data)
-                except Exception:
-                    raise
+                result = translate(query, options)
+                translated, romanization, romanizationTarget, definitions, examples = result.values()
 
                 def i_to_attrs(m):
                     return "<{} {}>".format(m.group(1), attributes[m.group(2)])
@@ -436,7 +481,7 @@ class GoogleTranslate(QDialog):
             if self.browser:
                 self.browser.mw.progress.finish()
                 self.browser.mw.reset()
-        
+
         if self.browser:
             mw.col.save()
 
@@ -447,7 +492,7 @@ class GoogleTranslate(QDialog):
         elif self.editor and not self.updated:
             tooltip("No fields updated.", parent=self.parentWindow)
 
-        
+
 def onGoogleTranslate(browser):
     nids = browser.selectedNotes()
 
@@ -478,3 +523,112 @@ def onSetupEditorButtons(buttons, editor):
 
 from aqt.gui_hooks import editor_did_init_buttons
 editor_did_init_buttons.append(onSetupEditorButtons)
+
+
+lookup_cache = {}
+
+# https://github.com/ankitects/anki-addons/blob/main/demos/field_filter/__init__.py
+def my_field_filter(
+    field_text: str,
+    field_name: str,
+    filter_name: str,
+    context: TemplateRenderContext,
+) -> str:
+    if not filter_name.startswith("google-translate"):
+        return field_text
+
+    try:
+        (_, name) = filter_name.split(' ', maxsplit=1)
+    except ValueError:
+        return invalid_name(filter_name)
+
+    if name == 'voices':
+        voices = '<div style="text-align: center; font-size: smaller;">'
+        voices += '<table cellpadding="5" cellspacing="5" border="1" style="text-align: left; border-collapse: collapse; display: inline-block; margin: 20px;">'
+        voices += f'<tr style="text-align: center;"><th colspan="2">Source Languages</th></tr>'
+        for item in getSourceLanguages().items():
+            voices += f'<tr><td>{item[1]}</td><td>{item[0]}</td></tr>'
+        voices += '</table>'
+        voices += '<table cellpadding="5" cellspacing="5" border="1" style="text-align: left; border-collapse: collapse; display: inline-block; margin: 20px;">'
+        voices += f'<tr style="text-align: center;"><th colspan="2">Target Languages</th></tr>'
+        for item in getTargetLanguages().items():
+            voices += f'<tr><td>{item[1]}</td><td>{item[0]}</td></tr>'
+        voices += '</table>'
+        voices += '</div>'
+        return voices
+
+    if name == 'usage':
+        usage = '<div style="font-size: smaller; color: #4B8CF5; text-align: left;">'
+        usage += '<br>'.join([
+            r"usage:",
+            r"{{google-translate voices:}}",
+            r"",
+            r"{{google-translate t auto en Word:}}",
+            r"",
+            r"{{google-translate t auto en Word:Target Field}}",
+            r"{{google-translate rm ja en Word:Romanization}}",
+            r"{{google-translate rmt auto zh-CN Word:Target Romanization}}",
+            r"{{google-translate md auto fr Word:Definitions}}",
+            r"{{google-translate ex auto en Word:Examples}}",
+            r"",
+            html.escape(r"{{google-translate _ <Source Language> <Target Language> <Source Field>:<Target Field>}}"),
+        ])
+        usage += '</div>'
+        return usage
+
+    try:
+        (mode, sl, tl, srcField) = name.split(' ', maxsplit=3)
+    except ValueError:
+        return invalid_name(filter_name)
+
+    try:
+        assert mode in ["t", "rm", "rmt", "md", "ex"], mode
+        assert sl in getSourceLanguages().values(), sl
+        assert tl in getTargetLanguages().values(), tl
+    except AssertionError as e:
+        return invalid_name(filter_name, msg='error: <span style="color: black;">' + str(e) + '</span>')
+
+    try:
+        assert srcField in context.note()
+    except AssertionError as e:
+        return invalid_name(filter_name, msg=f"error: there is no field called '{srcField}'")
+
+    if context._template is not None:
+        return '{{' + filter_name + ':' + field_name + '}}'
+
+    if field_name and context.note()[field_name] != "":
+        return field_text
+
+    options = {}
+    options['sourceLangCode'] = sl
+    options['targetLangCode'] = tl
+
+    soup = BeautifulSoup(context.note()[srcField], "html.parser")
+    query = soup.get_text()
+
+    if not query:
+        return field_text
+
+    key = f"{sl} {tl} {query}"
+    if key in lookup_cache:
+        result = lookup_cache[key]
+    else:
+        result = translate(query, options, is_filter=True)
+        lookup_cache[key] = result
+
+    field_text = result[mode]
+
+    if field_name:
+        context.note()[field_name] = field_text
+        context.note().flush()
+
+    return field_text
+
+def invalid_name(filter_name: str, msg="") -> str:
+    err = '<br>'.join([
+        f'invalid filter name: <span style="color: black;">{filter_name}</span>',
+        msg,
+    ])
+    return f'<div style="font-size: smaller; color: #f44336; text-align: left;">{err}</div>'
+
+hooks.field_filter.append(my_field_filter)
