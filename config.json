@@ -10,7 +10,9 @@
 	"Alternative Translations Field": "",
 	"Strip HTML": true,
 	"Overwrite": false,
-	"Translated Definitions?": false,
-	"Show Extra Options": false,
+	"Get Translated Definitions": false,
+	"Get Translated Examples": false,
+	"Show Extra Options": true,
+	"Show Extra Fields": true,
 	"Alternative Translations Meanings Visibility": "show"
 }

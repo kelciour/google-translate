@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>504</width>
-    <height>265</height>
+    <height>299</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -137,12 +137,12 @@
     </layout>
    </item>
    <item>
-    <widget class="QGroupBox" name="groupBox">
+    <widget class="QGroupBox" name="extraFields">
      <property name="enabled">
       <bool>true</bool>
      </property>
      <property name="title">
-      <string>Extra Fields:</string>
+      <string>Extra Fields</string>
      </property>
      <property name="flat">
       <bool>false</bool>
@@ -307,16 +307,70 @@
         </item>
        </layout>
       </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="extraOptions">
+     <property name="title">
+      <string>Extra Options</string>
+     </property>
+     <property name="checkable">
+      <bool>false</bool>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_4">
-        <item>
-         <widget class="QCheckBox" name="checkBoxTranslatedDefinitions">
-          <property name="text">
-           <string>Get definitions and examples using the translated text?</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
+       <widget class="QLabel" name="label_11">
+        <property name="text">
+         <string>Use the translated text to get</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_5">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Fixed</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>5</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkBoxTranslatedDefinitions">
+        <property name="text">
+         <string>definitions</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkBoxTranslatedExamples">
+        <property name="text">
+         <string>examples</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_7">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
       </item>
      </layout>
     </widget>

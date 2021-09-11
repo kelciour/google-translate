@@ -110,9 +110,12 @@ class GoogleTranslate(QDialog):
             self.form.radioButtonHTML.setChecked(True)
 
         self.form.checkBoxOverwrite.setChecked(self.config["Overwrite"])
-        self.form.checkBoxTranslatedDefinitions.setChecked(self.config["Translated Definitions?"])
+        self.form.checkBoxTranslatedDefinitions.setChecked(self.config["Get Translated Definitions"])
+        self.form.checkBoxTranslatedExamples.setChecked(self.config["Get Translated Examples"])
         if not self.config["Show Extra Options"]:
-            self.form.checkBoxTranslatedDefinitions.setHidden(True)
+            self.form.extraOptions.setHidden(True)
+        if not self.config["Show Extra Fields"]:
+            self.form.extraFields.setHidden(True)
 
         self.icon = os.path.join(os.path.dirname(__file__), "favicon.ico")
         self.setWindowIcon(QIcon(self.icon))
@@ -210,7 +213,8 @@ class GoogleTranslate(QDialog):
         self.config["Strip HTML"] = self.form.radioButtonText.isChecked()
 
         self.config["Overwrite"] = self.form.checkBoxOverwrite.isChecked()
-        self.config["Translated Definitions?"] = self.form.checkBoxTranslatedDefinitions.isChecked()
+        self.config["Get Translated Definitions"] = self.form.checkBoxTranslatedDefinitions.isChecked()
+        self.config["Get Translated Examples"] = self.form.checkBoxTranslatedExamples.isChecked()
 
         mw.addonManager.writeConfig(__name__, self.config)
 
@@ -337,14 +341,18 @@ class GoogleTranslate(QDialog):
                 romanizationTarget += [""] * (len(nids) - len(romanizationTarget))
                 assert len(nids) == len(romanizationTarget), "romanization target: {} notes != {}\n\n-------------\n{}\n-------------\n".format(len(nids), len(romanizationTarget), urllib.parse.unquote(query))
 
-                if self.config["Show Extra Options"] and self.config["Translated Definitions?"] and len(nids) == 1 and (self.mdField or self.exField):
+                if self.config["Show Extra Options"] and (self.config["Get Translated Definitions"] or self.config["Get Translated Examples"]) and len(nids) == 1 and (self.mdField or self.exField):
                     BASE_URL = "https://translate.googleapis.com/translate_a/single?client=gtx" \
                     "&sl={}&tl={}&dt=t".format(self.targetLangCode, self.sourceLangCode)
                     GOOGLE_TRANSLATE_URL = BASE_URL + EXTRA_OPTIONS + "&q={}".format(translated[0])
                     r = requests.get(GOOGLE_TRANSLATE_URL, headers=headers, timeout=15)
                     r.raise_for_status()
                     data = r.json()
-                    _, _, _, definitions, examples = parse_translated_data(data)
+                    _, _, _, t_definitions, t_examples = parse_translated_data(data)
+                    if self.config["Get Translated Definitions"]:
+                        definitions = t_definitions
+                    if self.config["Get Translated Examples"]:
+                        examples = t_examples
 
                 alt_translations = ''
                 if self.atField and len(nids) == 1:
