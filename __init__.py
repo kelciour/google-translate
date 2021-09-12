@@ -620,49 +620,71 @@ def my_field_filter(
         usage = '<div style="font-size: smaller; color: #4B8CF5; text-align: left;">'
         usage += '<br>'.join([
             r"usage:",
+            r"",
+            r"-- get a list of language codes",
             r"{{google-translate voices:}}",
             r"",
-            r"{{google-translate t auto en Word:}}",
+            r"-- syntax",
+            html.escape(r"{{google-translate <data_type> <source_language>,<target_language>[,<format>,<if_not_empty>] <source_field>:<target_field>}}"),
+            html.escape(r"-- <data_type> = t, rm, rmt, md, ex"),
+            html.escape(r"-- <format> = text"),
+            html.escape(r"-- <if_not_empty> = s, skip, w, write (s = skip, w = write)"),
             r"",
-            r"{{google-translate t auto en Word:Target Field}}",
-            r"{{google-translate rm ja en Word:Romanization}}",
-            r"{{google-translate rmt auto zh-CN Word:Target Romanization}}",
-            r"{{google-translate md auto fr Word:Definitions}}",
-            r"{{google-translate ex auto en Word:Examples}}",
+            r"-- full syntax",
+            r"{{google-translate t auto,en,text,s Example:Translation}}",
+            r"{{google-translate t auto,en,text,w Example:Translation}}",
             r"",
-            html.escape(r"{{google-translate _ <Source Language> <Target Language> <Source Field>:<Target Field>}}"),
+            r"-- short syntax",
+            r"{{google-translate t auto,en Example:Translation}}",
+            r"-- auto,en = auto,en,text,s",
+            r"",
+            r"-- examples",
+            r"{{google-translate t … Example:Translation}}",
+            r"{{google-translate rm … Word:Romanization}}",
+            r"{{google-translate rmt … Word:Target Romanization}}",
+            r"{{google-translate md … Word:Definitions}}",
+            r"{{google-translate ex … Word:Examples}}",
         ])
         usage += '</div>'
         return usage
 
     try:
-        (mode, sl, tl, srcField) = name.split(' ', maxsplit=3)
+        (mode, settings, source_field) = name.split(' ', maxsplit=2)
     except ValueError:
         return invalid_name(filter_name)
 
     try:
         assert mode in ["t", "rm", "rmt", "md", "ex"], mode
-        assert sl in getSourceLanguages().values(), sl
-        assert tl in getTargetLanguages().values(), tl
+        settings = settings.split(',')
+        if len(settings) == 2:
+            (sl, tl), fmt, ie = settings, 'text', 's'
+        elif len(settings) == 4:
+            sl, tl, fmt, ie = settings
+        else:
+            return invalid_name(filter_name)
+        assert sl in getSourceLanguages().values(), f"unknown language code '{sl}'"
+        assert tl in getTargetLanguages().values(), f"unknown language code '{tl}'"
+        assert fmt in ['text'], f"'{fmt}' not in ['text']"
+        assert ie in ['s', 'skip', 'w', 'write'], f"'{ie}' not in ['s', 'skip', 'w', 'write']"
     except AssertionError as e:
         return invalid_name(filter_name, msg='error: <span style="color: black;">' + str(e) + '</span>')
 
     try:
-        assert srcField in context.note()
+        assert source_field in context.note()
     except AssertionError as e:
-        return invalid_name(filter_name, msg=f"error: there is no field called '{srcField}'")
+        return invalid_name(filter_name, msg=f"error: there is no field called '{source_field}'")
 
     if context._template is not None:
         return '{{' + filter_name + ':' + field_name + '}}'
 
-    if field_name and context.note()[field_name] != "":
+    if field_name and context.note()[field_name] != "" and ie in ["s", "skip"]:
         return field_text
 
     options = {}
     options['sourceLangCode'] = sl
     options['targetLangCode'] = tl
 
-    soup = BeautifulSoup(context.note()[srcField], "html.parser")
+    soup = BeautifulSoup(context.note()[source_field], "html.parser")
     query = soup.get_text()
 
     if not query:
@@ -687,6 +709,7 @@ def invalid_name(filter_name: str, msg="") -> str:
     err = '<br>'.join([
         f'invalid filter name: <span style="color: black;">{filter_name}</span>',
         msg,
+        r"for some examples: {{google-translate usage:}}"
     ])
     return f'<div style="font-size: smaller; color: #f44336; text-align: left;">{err}</div>'
 
