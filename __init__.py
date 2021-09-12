@@ -216,7 +216,7 @@ class GoogleTranslate(QDialog):
         if not self.config["Show Extra Fields"]:
             self.form.extraFields.setHidden(True)
 
-        self.icon = os.path.join(os.path.dirname(__file__), "favicon.ico")
+        self.icon = os.path.join(os.path.dirname(__file__), "favicon.png")
         self.setWindowIcon(QIcon(self.icon))
 
         self.adjustSize()
@@ -513,7 +513,7 @@ addHook("browser.setupMenus", setupMenu)
 
 
 def onSetupEditorButtons(buttons, editor):
-    icon = os.path.join(os.path.dirname(__file__), "favicon.ico")
+    icon = os.path.join(os.path.dirname(__file__), "favicon.png")
     b = editor.addButton(icon,
                          "Google Translate",
                          lambda e=editor: GoogleTranslate(e),
