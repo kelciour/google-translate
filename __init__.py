@@ -27,6 +27,7 @@ addon_dir = os.path.dirname(os.path.realpath(__file__))
 vendor_dir = os.path.join(addon_dir, 'vendor')
 sys.path.append(vendor_dir)
 
+headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.122 Safari/537.36" }
 
 def translate(query, options, is_filter=False):
     sourceLangCode = options['sourceLangCode']
@@ -45,60 +46,6 @@ def translate(query, options, is_filter=False):
     ])
     GOOGLE_TRANSLATE_URL = BASE_URL + EXTRA_OPTIONS + "&q={}".format(query)
 
-    headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.122 Safari/537.36" }
-
-    def parse_translated_data(data):
-        translated = ""
-        romanization = ""
-        romanizationTarget = ""
-        for d in (data[0] or []):
-            translated += d[0] if d is not None and len(d) > 0 and d[0] else ""
-            romanization += d[3] if d is not None and len(d) > 3 and d[3] else ""
-            romanizationTarget += d[2] if d is not None and len(d) > 2 and d[2] else ""
-        definitions = []
-        try:
-            langcode = data[2]
-        except IndexError:
-            langcode = ""
-        try:
-            for d in data[12]:
-                part_of_speech = d[0]
-                definitions.append('<div class="eIKIse" style="color: #1a73e8; font-weight: bold;">{}</div>'.format(part_of_speech))
-                definitions.append('<ol>')
-                for m in d[1]:
-                    defn = m[0]
-                    try:
-                        ex = m[2] or ""
-                        if ex:
-                            if langcode == 'ja':
-                                ex = re.sub(r'^「(.+)」$', r' \1 ', ex)
-                            defn += '<div class="MZgjEb" style="color: #5f6368; font-size: 19px;"'
-                            if langcode:
-                                defn += ' lang="{}"'.format(langcode)
-                            defn += '><q>{}</q></div>'.format(ex)
-                    except IndexError:
-                        pass
-                    definitions.append('<li class="fw3eif">{}</li>'.format(defn))
-                definitions.append('</ol>')
-        except IndexError:
-            pass
-        definitions = ''.join(definitions)
-        examples = []
-        try:
-            for d in data[13][0]:
-                ex = d[0]
-                examples.append('<div class="AZPoqf">{}</div>'.format(ex))
-        except IndexError:
-            pass
-        examples = ''.join(examples)
-        return {
-            "t": translated,
-            "rm": romanization,
-            "rmt": romanizationTarget,
-            "md": definitions,
-            "ex": examples
-        }
-
     try:
         r = requests.get(GOOGLE_TRANSLATE_URL, headers=headers, timeout=15)
         r.raise_for_status()
@@ -106,6 +53,58 @@ def translate(query, options, is_filter=False):
         return parse_translated_data(data)
     except Exception:
         raise
+
+def parse_translated_data(data):
+    translated = ""
+    romanization = ""
+    romanizationTarget = ""
+    for d in (data[0] or []):
+        translated += d[0] if d is not None and len(d) > 0 and d[0] else ""
+        romanization += d[3] if d is not None and len(d) > 3 and d[3] else ""
+        romanizationTarget += d[2] if d is not None and len(d) > 2 and d[2] else ""
+    definitions = []
+    try:
+        langcode = data[2]
+    except IndexError:
+        langcode = ""
+    try:
+        for d in data[12]:
+            part_of_speech = d[0]
+            definitions.append('<div class="eIKIse" style="color: #1a73e8; font-weight: bold;">{}</div>'.format(part_of_speech))
+            definitions.append('<ol>')
+            for m in d[1]:
+                defn = m[0]
+                try:
+                    ex = m[2] or ""
+                    if ex:
+                        if langcode == 'ja':
+                            ex = re.sub(r'^「(.+)」$', r' \1 ', ex)
+                        defn += '<div class="MZgjEb" style="color: #5f6368; font-size: 19px;"'
+                        if langcode:
+                            defn += ' lang="{}"'.format(langcode)
+                        defn += '><q>{}</q></div>'.format(ex)
+                except IndexError:
+                    pass
+                definitions.append('<li class="fw3eif">{}</li>'.format(defn))
+            definitions.append('</ol>')
+    except IndexError:
+        pass
+    definitions = ''.join(definitions)
+    examples = []
+    try:
+        for d in data[13][0]:
+            ex = d[0]
+            examples.append('<div class="AZPoqf">{}</div>'.format(ex))
+    except IndexError:
+        pass
+    examples = ''.join(examples)
+    return {
+        "t": translated,
+        "rm": romanization,
+        "rmt": romanizationTarget,
+        "md": definitions,
+        "ex": examples
+    }
 
 sourceLanguages = None
 
@@ -387,13 +386,18 @@ class GoogleTranslate(QDialog):
                 assert len(nids) == len(romanizationTarget), "romanization target: {} notes != {}\n\n-------------\n{}\n-------------\n".format(len(nids), len(romanizationTarget), urllib.parse.unquote(query))
 
                 if self.config["Show Extra Options"] and (self.config["Get Translated Definitions"] or self.config["Get Translated Examples"]) and len(nids) == 1 and (self.mdField or self.exField):
+                    EXTRA_OPTIONS = "".join([
+                        "&dt=rm" if self.rmField or self.rmTargetField else "",
+                        "&dt=md" if self.mdField or self.exField else "",
+                        "&dt=ex" if self.mdField or self.exField else "",
+                    ])
                     BASE_URL = "https://translate.googleapis.com/translate_a/single?client=gtx" \
                     "&sl={}&tl={}&dt=t".format(self.targetLangCode, self.sourceLangCode)
                     GOOGLE_TRANSLATE_URL = BASE_URL + EXTRA_OPTIONS + "&q={}".format(translated[0])
                     r = requests.get(GOOGLE_TRANSLATE_URL, headers=headers, timeout=15)
                     r.raise_for_status()
                     data = r.json()
-                    _, _, _, t_definitions, t_examples = parse_translated_data(data)
+                    _, _, _, t_definitions, t_examples = parse_translated_data(data).values()
                     if self.config["Get Translated Definitions"]:
                         definitions = t_definitions
                     if self.config["Get Translated Examples"]:
