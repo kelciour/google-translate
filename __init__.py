@@ -191,6 +191,9 @@ class GoogleTranslate(QDialog):
 
         self.config = mw.addonManager.getConfig(__name__)
 
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.on_context_menu)
+
         self.form.sourceField.currentIndexChanged.connect(onSourceFieldChanged)
 
         if self.config["Source Field"] in self.note:
@@ -220,6 +223,56 @@ class GoogleTranslate(QDialog):
 
         self.adjustSize()
         self.show()
+
+    def on_context_menu(self, point):
+        m = QMenu()
+
+        a = m.addAction("Show Extra Fields")
+        a.triggered.connect(self.on_context_menu_show_extra_fields)
+        a.setCheckable(True)
+        a.setChecked(self.config["Show Extra Fields"])
+
+        a = m.addAction("Show Extra Options")
+        a.triggered.connect(self.on_context_menu_show_extra_options)
+        a.setCheckable(True)
+        a.setChecked(self.config["Show Extra Options"])
+
+        sm = m.addMenu("Alternative Translations")
+        a = sm.addAction("Show Meanings")
+        a.setCheckable(True)
+        a.triggered.connect(lambda: self.on_context_menu_alternative_translations_meanings("show"))
+        if self.config["Alternative Translations Meanings Visibility"] == "show":
+            a.setChecked(True)
+        a = sm.addAction("Hide Meanings")
+        a.setCheckable(True)
+        a.triggered.connect(lambda: self.on_context_menu_alternative_translations_meanings("hide"))
+        if self.config["Alternative Translations Meanings Visibility"] == "hide":
+            a.setChecked(True)
+        a = sm.addAction("Remove Meanings")
+        a.setCheckable(True)
+        a.triggered.connect(lambda: self.on_context_menu_alternative_translations_meanings("remove"))
+        if self.config["Alternative Translations Meanings Visibility"] == "remove":
+            a.setChecked(True)
+
+        m.exec_(QCursor.pos())
+
+    def on_context_menu_show_extra_options(self):
+        self.config["Show Extra Options"] = not self.config["Show Extra Options"]
+        mw.addonManager.writeConfig(__name__, self.config)
+        self.form.extraOptions.setHidden(not self.config["Show Extra Options"])
+        self.adjustSize()
+        self.update()
+
+    def on_context_menu_show_extra_fields(self):
+        self.config["Show Extra Fields"] = not self.config["Show Extra Fields"]
+        mw.addonManager.writeConfig(__name__, self.config)
+        self.form.extraFields.setHidden(not self.config["Show Extra Fields"])
+        self.adjustSize()
+        self.update()
+
+    def on_context_menu_alternative_translations_meanings(self, value):
+        self.config["Alternative Translations Meanings Visibility"] = value
+        mw.addonManager.writeConfig(__name__, self.config)
 
     def chunkify(self):
         chunk = {"nids": [], "query": "", "progress": 0}
@@ -362,10 +415,11 @@ class GoogleTranslate(QDialog):
                 options = {}
                 options['sourceLangCode'] = self.sourceLangCode
                 options['targetLangCode'] = self.targetLangCode
-                options['rmField'] = self.rmField
-                options['rmTargetField'] = self.rmTargetField
-                options['mdField'] = self.mdField
-                options['exField'] = self.exField
+                if self.config["Show Extra Fields"]:
+                    options['rmField'] = self.rmField
+                    options['rmTargetField'] = self.rmTargetField
+                    options['mdField'] = self.mdField
+                    options['exField'] = self.exField
 
                 result = translate(query, options)
                 translated, romanization, romanizationTarget, definitions, examples = result.values()
@@ -404,7 +458,7 @@ class GoogleTranslate(QDialog):
                         examples = t_examples
 
                 alt_translations = ''
-                if self.atField and len(nids) == 1:
+                if self.config["Show Extra Fields"] and self.atField and len(nids) == 1:
                     if self.translator is None:
                         from googletrans import Translator
                         self.translator = Translator()
@@ -466,11 +520,12 @@ class GoogleTranslate(QDialog):
                             self.note[fld] = txt
 
                     saveField(self.targetField, text)
-                    saveField(self.rmTargetField, romTarget)
-                    saveField(self.rmField, rom)
-                    saveField(self.mdField, definitions)
-                    saveField(self.exField, examples)
-                    saveField(self.atField, alt_translations)
+                    if self.config["Show Extra Fields"]:
+                        saveField(self.rmTargetField, romTarget)
+                        saveField(self.rmField, rom)
+                        saveField(self.mdField, definitions)
+                        saveField(self.exField, examples)
+                        saveField(self.atField, alt_translations)
 
                     if self.editor:
                         self.editor.setNote(self.note)
