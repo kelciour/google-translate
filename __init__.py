@@ -571,11 +571,16 @@ def setupMenu(browser):
 addHook("browser.setupMenus", setupMenu)
 
 
+def onEditorButton(editor):
+    GoogleTranslate(editor)
+    return None
+
+
 def onSetupEditorButtons(buttons, editor):
     icon = os.path.join(os.path.dirname(__file__), "favicon.png")
     b = editor.addButton(icon,
                          "Google Translate",
-                         lambda e=editor: GoogleTranslate(e),
+                         lambda e=editor: onEditorButton(e),
                          tip="{}".format("Google Translate"))
     buttons.append(b)
     return buttons
