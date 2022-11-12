@@ -97,7 +97,7 @@ class GoogleTranslate(QDialog):
                 text = soup.get_text()
             else:
                 text = note[self.sourceField]
-            text = re.sub(r'{{c(\d+)::(.*?)(::.*?)?}}', r'<c\1>\2</c>', text, flags=re.I)
+            text = re.sub(r'{{c(\d+)::(.*?)(::.*?)?}}', r'\2', text, flags=re.I)
             if len(text.split()) == 1 and self.mdField:
                 batch_translate = False
             else:
@@ -246,13 +246,6 @@ class GoogleTranslate(QDialog):
 
                 for nid, text, rom in zip(nids, translated, romanization):
                     note = mw.col.getNote(nid)
-                    text = re.sub(r' (<c\d+>) ', r' \1', text)
-                    text = re.sub(r' (</c\d+>) ', r'\1 ', text)
-                    text = re.sub(r'<c(\d+)>(.*?)</c>', r'{{c\1::\2}}', text)
-                    text = re.sub(r' }}([,.?!])', r'}}\1', text)
-                    text = re.sub(r'{{c(\d+)::(.*?) +}} ', r'{{c\1::\2}} ', text)
-                    text = re.sub(r' ([,:;!?])', r'\1', text)
-                    text = text.replace('< ', '<')
                     text = text.strip()
                     if not self.config["Strip HTML"]:
                         text = self.fix(text)
