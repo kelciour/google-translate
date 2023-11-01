@@ -191,7 +191,7 @@ class GoogleTranslate(QDialog):
 
         self.config = mw.addonManager.getConfig(__name__)
 
-        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.on_context_menu)
 
         self.form.sourceField.currentIndexChanged.connect(onSourceFieldChanged)
