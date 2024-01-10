@@ -74,6 +74,25 @@ def parse_translated_data(data):
             definitions.append('<ol>')
             for m in d[1]:
                 defn = m[0]
+
+                try:
+                    word_topics = []
+                    style = "border: 1px slategray solid; color: slategray; padding: 0 4px; margin: 0 4px;"
+
+                    for tags_array in m[3]:
+                        if tags_array is not None:
+                            for tag in tags_array:
+                                if tag and tag.strip():
+                                    word_topics.append(tag)
+
+                    if len(word_topics) > 0:
+                        result = ''
+                        for topic in word_topics:
+                            result += f'<div class="PG9puc" style="{style}">{topic}</div>'
+                        defn = f'<div class="CF8Iy CLHVBf" style="display: inline-flex">{result}</div>' + defn
+                except IndexError:
+                    pass
+
                 try:
                     ex = m[2] or ""
                     if ex:
