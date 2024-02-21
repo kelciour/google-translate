@@ -21,7 +21,11 @@ from aqt.qt import *
 from aqt import mw
 
 from . import lang
-from . import form
+
+try:
+    from . import form_qt6 as form
+except:
+    from . import form_qt5 as form
 
 addon_dir = os.path.dirname(os.path.realpath(__file__))
 vendor_dir = os.path.join(addon_dir, 'vendor')
