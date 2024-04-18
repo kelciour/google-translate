@@ -325,6 +325,7 @@ class GoogleTranslate(QDialog):
                 batch_translate = True
             if not self.config["Strip HTML"] and batch_translate:
                 text = note[self.sourceField]
+            text = re.sub(r'\[sound:.*?\]', '', text)
             text = re.sub(r'{{c(\d+)::(.*?)(::.*?)?}}', r'<c\1>\2</c>', text, flags=re.I)
             text = urllib.parse.quote(text)
             if not chunk["nids"]:
