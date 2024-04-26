@@ -305,13 +305,15 @@ class GoogleTranslate(QDialog):
             else:
                 note = mw.col.getNote(nid)
             chunk["progress"] += 1
-            if not note[self.sourceField]:
-               continue
             if self.sourceField not in note:
                 continue
+            if not note[self.sourceField]:
+               continue
             flag = False
             for fld in [self.targetField, self.rmTargetField, self.rmField, self.mdField, self.exField, self.atField]:
                 if not fld:
+                    continue
+                if fld not in note:
                     continue
                 if self.config["Overwrite"] or note[fld] == "":
                     flag = True
@@ -537,6 +539,8 @@ class GoogleTranslate(QDialog):
 
                     def saveField(fld, txt):
                         if not fld:
+                            return
+                        if fld not in self.note:
                             return
                         if self.note[fld] != txt:
                             self.updated = True
