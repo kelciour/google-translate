@@ -488,12 +488,12 @@ class GoogleTranslate(QDialog):
                     if self.translator is None:
                         from googletrans import Translator
                         self.translator = Translator()
-                    translation = self.translator.translate(urllib.parse.unquote(query), src=self.sourceLangCode, dest=self.targetLangCode)
-                    data = translation.extra_data['parsed']
-                    freq_color_blue = 'rgb(26,115,232)'
-                    freq_color_gray = 'rgb(218,220,224)'
-                    freq_info = '<span class="YF3enc" style="padding:7px 0px;display:inline-flex;"><div class="{}" style="border-radius:1px;height:6px;margin:1px;width:10px;background-color:{};"></div><div class="{}" style="border-radius:1px;height:6px;margin:1px;width:10px;background-color:{};"></div><div class="{}" style="border-radius:1px;height:6px;margin:1px;width:10px;background-color:{};"></div></span>'
                     try:
+                        translation = self.translator.translate(urllib.parse.unquote(query), src=self.sourceLangCode, dest=self.targetLangCode)
+                        data = translation.extra_data['parsed']
+                        freq_color_blue = 'rgb(26,115,232)'
+                        freq_color_gray = 'rgb(218,220,224)'
+                        freq_info = '<span class="YF3enc" style="padding:7px 0px;display:inline-flex;"><div class="{}" style="border-radius:1px;height:6px;margin:1px;width:10px;background-color:{};"></div><div class="{}" style="border-radius:1px;height:6px;margin:1px;width:10px;background-color:{};"></div><div class="{}" style="border-radius:1px;height:6px;margin:1px;width:10px;background-color:{};"></div></span>'
                         for d in data[3][5][0]:
                             part_of_speech = d[0]
                             tbody_padding_top = ''
@@ -518,9 +518,7 @@ class GoogleTranslate(QDialog):
                                 alt_translations += '<td>{}</td></tr>'.format(freq)
                             alt_translations += '</tbody>'
                         alt_translations = '<table>' + alt_translations + '</table>'
-                    except TypeError:
-                        pass
-                    except IndexError:
+                    except Exception:
                         pass
 
                 for nid, text, rom, romTarget in zip(nids, translated, romanization, romanizationTarget):
