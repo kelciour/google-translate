@@ -339,7 +339,7 @@ class GoogleTranslate(QDialog):
                 chunk = {"nids": [nid], "query": text, "progress": chunk["progress"], "batch_translate": batch_translate}
             elif len(chunk["query"] + text) < 2000:
                 chunk["nids"].append(nid)
-                if self.targetLang == 'Thai':
+                if self.targetLang == 'Thai' or self.sourceLang == 'Hindi':
                     chunk["query"] += urllib.parse.quote("\n~1~\n") + text
                 else:
                     chunk["query"] += urllib.parse.quote("\n~~~\n") + text
@@ -438,7 +438,7 @@ class GoogleTranslate(QDialog):
                     return "<{} i={}>".format(m.group(1), i)
                 query = re.sub(r'<(\w+) ([^>]+)>', attrs_to_i, query)
 
-                if self.targetLang == 'Thai':
+                if self.targetLang == 'Thai' or self.sourceLang == 'Hindi':
                     rows = query.split(urllib.parse.quote("\n~1~\n"))
                 else:
                     rows = query.split(urllib.parse.quote("\n~~~\n"))
@@ -460,23 +460,23 @@ class GoogleTranslate(QDialog):
                     return "<{} {}>".format(m.group(1), attributes[m.group(2)])
                 translated = re.sub(r'<(\w+) i\s*=\s*(\d+)>', i_to_attrs, translated)
 
-                if self.targetLang == 'Thai':
+                if self.targetLang == 'Thai' or self.sourceLang == 'Hindi':
                     translated = re.split(r'\n[~〜] ?1 ?[~〜]\n', translated)
                 else:
                     translated = re.split(r'\n[~〜] ?[~〜] ?[~〜]\n', translated)
                 assert len(nids) == len(translated), "Translated: {} notes != {}\n\n-------------\n{}\n-------------\n".format(len(nids), len(translated), urllib.parse.unquote(query))
 
-                if self.targetLang == 'Thai':
+                if self.targetLang == 'Thai' or self.sourceLang == 'Hindi':
                     romanization = re.split(r'\s*[~〜] ?1 ?[~〜]\s*', romanization)
                 else:
-                    romanization = re.split(r'\s*[~〜]{3}\s*', romanization)
+                    romanization = re.split(r'\s*[~〜]\s*[~〜]\s*[~〜]\s*', romanization)
                 romanization += [""] * (len(nids) - len(romanization))
                 assert len(nids) == len(romanization), "Romanization: {} notes != {}\n\n-------------\n{}\n-------------\n".format(len(nids), len(romanization), urllib.parse.unquote(query))
 
-                if self.targetLang == 'Thai':
+                if self.targetLang == 'Thai' or self.sourceLang == 'Hindi':
                     romanizationTarget = re.split(r'\s*[~〜] ?1 ?[~〜]\s*', romanizationTarget)
                 else:
-                    romanizationTarget = re.split(r'\s*[~〜]{3}\s*', romanizationTarget)
+                    romanizationTarget = re.split(r'\s*[~〜]\s*[~〜]\s*[~〜]\s*', romanizationTarget)
                 romanizationTarget += [""] * (len(nids) - len(romanizationTarget))
                 assert len(nids) == len(romanizationTarget), "romanization target: {} notes != {}\n\n-------------\n{}\n-------------\n".format(len(nids), len(romanizationTarget), urllib.parse.unquote(query))
 
