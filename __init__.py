@@ -510,7 +510,22 @@ class GoogleTranslate(QDialog):
                         freq_color_gray = 'rgb(218,220,224)'
                         freq_info = '<span class="YF3enc" style="padding:7px 0px;display:inline-flex;"><div class="{}" style="border-radius:1px;height:6px;margin:1px;width:10px;background-color:{};"></div><div class="{}" style="border-radius:1px;height:6px;margin:1px;width:10px;background-color:{};"></div><div class="{}" style="border-radius:1px;height:6px;margin:1px;width:10px;background-color:{};"></div></span>'
                         for d in data[3][5][0]:
-                            part_of_speech = d[0]
+                            _parts_of_speech = {
+                                1: "Noun",         2: "Verb",
+                                3: "Adjective",    4: "Adverb",
+                                5: "Preposition",  6: "Abbreviation",
+                                7: "Conjunction",  8: "Pronoun",
+                                9: "Interjection", 10: "Phrase",
+                                11: "Prefix",      12: "Suffix",
+                                13: "Article",     14: "Combining form",
+                                15: "Numeral",     16: "Auxiliary verb",
+                                17: "Exclamation", 18: "Plural",
+                                19: "Particle"
+                            }
+                            part_of_speech = " "
+                            if d[4] in _parts_of_speech:
+                                part_of_speech = _parts_of_speech[d[4]]
+
                             tbody_padding_top = ''
                             if alt_translations:
                                 tbody_padding_top = 'padding-top:1em;'
