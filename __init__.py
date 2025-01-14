@@ -277,7 +277,10 @@ class GoogleTranslate(QDialog):
         if self.config["Alternative Translations Meanings Visibility"] == "remove":
             a.setChecked(True)
 
-        m.exec_(QCursor.pos())
+        try:
+            m.exec(QCursor.pos())
+        except:
+            m.exec_(QCursor.pos())
 
     def on_context_menu_show_extra_options(self):
         self.config["Show Extra Options"] = not self.config["Show Extra Options"]
