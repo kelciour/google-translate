@@ -347,7 +347,7 @@ class GoogleTranslate(QDialog):
                 elif self.targetLang == 'Korean':
                     chunk["query"] += urllib.parse.quote("\n\n~\n\n") + text
                 else:
-                    chunk["query"] += urllib.parse.quote("\n~~~\n") + text
+                    chunk["query"] += urllib.parse.quote("\n~1~\n") + text
             else:
                 yield chunk
                 chunk = {"nids": [nid], "query": text, "progress": chunk["progress"], "batch_translate": batch_translate}
@@ -448,7 +448,7 @@ class GoogleTranslate(QDialog):
                 elif self.targetLang == 'Korean':
                     rows = query.split(urllib.parse.quote("\n\n~\n\n"))
                 else:
-                    rows = query.split(urllib.parse.quote("\n~~~\n"))
+                    rows = query.split(urllib.parse.quote("\n~1~\n"))
                 assert len(nids) == len(rows), "Chunks: {} != {}".format(len(nids), len(rows))
 
                 options = {}
@@ -472,7 +472,7 @@ class GoogleTranslate(QDialog):
                 elif self.targetLang == 'Korean':
                     translated = re.split(r'\n\n~\n\n', translated)
                 else:
-                    translated = re.split(r'\n[~〜] ?[~〜] ?[~〜]\n', translated)
+                    translated = re.split(r'\s*[~〜] ?1 ?[~〜]\s*', translated)
                 assert len(nids) == len(translated), "Translated: {} notes != {}\n\n-------------\n{}\n-------------\n".format(len(nids), len(translated), urllib.parse.unquote(query))
 
                 if self.targetLang == 'Thai' or self.sourceLang == 'Hindi':
@@ -480,7 +480,7 @@ class GoogleTranslate(QDialog):
                 elif self.targetLang == 'Korean':
                     romanization = re.split(r'\n\n~\n\n', romanization)
                 else:
-                    romanization = re.split(r'\s*[~〜]\s*[~〜]\s*[~〜]\s*', romanization)
+                    romanization = re.split(r'\s*[~〜] ?1 ?[~〜]\s*', romanization)
                 romanization += [""] * (len(nids) - len(romanization))
                 assert len(nids) == len(romanization), "Romanization: {} notes != {}\n\n-------------\n{}\n-------------\n".format(len(nids), len(romanization), urllib.parse.unquote(query))
 
@@ -489,7 +489,7 @@ class GoogleTranslate(QDialog):
                 elif self.targetLang == 'Korean':
                     romanizationTarget = re.split(r'\n\n~\n\n', romanizationTarget)
                 else:
-                    romanizationTarget = re.split(r'\s*[~〜]\s*[~〜]\s*[~〜]\s*', romanizationTarget)
+                    romanizationTarget = re.split(r'\s*[~〜] ?1 ?[~〜]\s*', romanizationTarget)
                 romanizationTarget += [""] * (len(nids) - len(romanizationTarget))
                 assert len(nids) == len(romanizationTarget), "romanization target: {} notes != {}\n\n-------------\n{}\n-------------\n".format(len(nids), len(romanizationTarget), urllib.parse.unquote(query))
 
