@@ -33,7 +33,7 @@ sys.path.append(vendor_dir)
 
 headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.122 Safari/537.36" }
 
-def translate(query, options, is_filter=False):
+def translate(query, options, is_filter=False, at=False, dj=False, raw=False):
     sourceLangCode = options['sourceLangCode']
     targetLangCode = options['targetLangCode']
     rmField = options.get('rmField', '')
@@ -47,6 +47,8 @@ def translate(query, options, is_filter=False):
         "&dt=rm" if is_filter or rmField or rmTargetField else "",
         "&dt=md" if is_filter or mdField or exField else "",
         "&dt=ex" if is_filter or mdField or exField else "",
+        "&dt=bd" if at else "",
+        "&dj=1" if dj else "",
     ])
     GOOGLE_TRANSLATE_URL = BASE_URL + EXTRA_OPTIONS + "&q={}".format(query)
 
@@ -54,6 +56,8 @@ def translate(query, options, is_filter=False):
         r = requests.get(GOOGLE_TRANSLATE_URL, headers=headers, timeout=15)
         r.raise_for_status()
         data = r.json()
+        if raw:
+            return data
         return parse_translated_data(data)
     except Exception:
         raise
@@ -513,51 +517,53 @@ class GoogleTranslate(QDialog):
 
                 alt_translations = ''
                 if self.config["Show Extra Fields"] and self.atField and len(nids) == 1:
-                    if self.translator is None:
-                        from googletrans import Translator
-                        self.translator = Translator()
+                    # if self.translator is None:
+                    #     from googletrans import Translator
+                    #     self.translator = Translator()
                     try:
-                        translation = self.translator.translate(urllib.parse.unquote(query), src=self.sourceLangCode, dest=self.targetLangCode)
-                        data = translation.extra_data['parsed']
+                        # translation = self.translator.translate(urllib.parse.unquote(query), src=self.sourceLangCode, dest=self.targetLangCode)
+                        # data = translation.extra_data['parsed']
+                        data = translate(query, options, at=True, dj=True, raw=True)
                         freq_color_blue = 'rgb(26,115,232)'
                         freq_color_gray = 'rgb(218,220,224)'
                         freq_info = '<span class="YF3enc" style="padding:7px 0px;display:inline-flex;"><div class="{}" style="border-radius:1px;height:6px;margin:1px;width:10px;background-color:{};"></div><div class="{}" style="border-radius:1px;height:6px;margin:1px;width:10px;background-color:{};"></div><div class="{}" style="border-radius:1px;height:6px;margin:1px;width:10px;background-color:{};"></div></span>'
-                        for d in data[3][5][0]:
-                            _parts_of_speech = {
-                                1: "Noun",         2: "Verb",
-                                3: "Adjective",    4: "Adverb",
-                                5: "Preposition",  6: "Abbreviation",
-                                7: "Conjunction",  8: "Pronoun",
-                                9: "Interjection", 10: "Phrase",
-                                11: "Prefix",      12: "Suffix",
-                                13: "Article",     14: "Combining form",
-                                15: "Numeral",     16: "Auxiliary verb",
-                                17: "Exclamation", 18: "Plural",
-                                19: "Particle"
-                            }
-                            part_of_speech = " "
-                            if d[4] in _parts_of_speech:
-                                part_of_speech = _parts_of_speech[d[4]]
+                        for d in data['dict']:
+                            # _parts_of_speech = {
+                            #     1: "Noun",         2: "Verb",
+                            #     3: "Adjective",    4: "Adverb",
+                            #     5: "Preposition",  6: "Abbreviation",
+                            #     7: "Conjunction",  8: "Pronoun",
+                            #     9: "Interjection", 10: "Phrase",
+                            #     11: "Prefix",      12: "Suffix",
+                            #     13: "Article",     14: "Combining form",
+                            #     15: "Numeral",     16: "Auxiliary verb",
+                            #     17: "Exclamation", 18: "Plural",
+                            #     19: "Particle"
+                            # }
+                            part_of_speech = d.get('pos', '')
+                            # if d[4] in _parts_of_speech:
+                            #     part_of_speech = _parts_of_speech[d[4]]
 
                             tbody_padding_top = ''
                             if alt_translations:
                                 tbody_padding_top = 'padding-top:1em;'
                             alt_translations += '<tbody>'
                             alt_translations += '<tr><th colspan="3" style="color:#1a73e8;font-weight:bold;text-align:left;{}">{}</th></tr>'.format(tbody_padding_top, part_of_speech)
-                            for t in d[1]:
-                                freq_colors = {
-                                    1: ('EiZ8Dd', freq_color_blue, 'EiZ8Dd', freq_color_blue, 'EiZ8Dd', freq_color_blue),
-                                    2: ('EiZ8Dd', freq_color_blue, 'EiZ8Dd', freq_color_blue, 'fXx9Lc', freq_color_gray),
-                                    3: ('EiZ8Dd', freq_color_blue, 'fXx9Lc', freq_color_gray, 'fXx9Lc', freq_color_gray),
-                                }[t[3]]
-                                freq = freq_info.format(*freq_colors)
-                                alt_translations += '<tr><td>{}</td>'.format(t[0])
+                            for t in d['entry']:
+                                # freq_colors = {
+                                #     1: ('EiZ8Dd', freq_color_blue, 'EiZ8Dd', freq_color_blue, 'EiZ8Dd', freq_color_blue),
+                                #     2: ('EiZ8Dd', freq_color_blue, 'EiZ8Dd', freq_color_blue, 'fXx9Lc', freq_color_gray),
+                                #     3: ('EiZ8Dd', freq_color_blue, 'fXx9Lc', freq_color_gray, 'fXx9Lc', freq_color_gray),
+                                # }[t[3]]
+                                # freq = freq_info.format(*freq_colors)
+                                freq = ''
+                                alt_translations += '<tr><td>{}</td>'.format(t['word'])
                                 if self.config["Alternative Translations Meanings Visibility"] == "remove":
                                     alt_translations += '<td></td>'
                                 elif self.config["Alternative Translations Meanings Visibility"] == "hide":
-                                    alt_translations += '<td style="font-size: 0;">{}</td>'.format(', '.join(t[2]))
+                                    alt_translations += '<td style="font-size: 0;">{}</td>'.format(', '.join(t['reverse_translation']))
                                 else:
-                                    alt_translations += '<td style="color: #5f6368; font-size: 19px;">{}</td>'.format(', '.join(t[2]))
+                                    alt_translations += '<td style="color: #5f6368; font-size: 19px;">{}</td>'.format(', '.join(t['reverse_translation']))
                                 alt_translations += '<td>{}</td></tr>'.format(freq)
                             alt_translations += '</tbody>'
                         alt_translations = '<table>' + alt_translations + '</table>'
